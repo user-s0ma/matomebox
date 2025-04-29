@@ -5,7 +5,7 @@ import { getDrizzleClient } from "@/lib/db";
 import { model } from "@/lib/gemini";
 import { getBrowser, webSearch } from "@/lib/webSearch";
 import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT, DEEP_FINAL_REPORT_PROMPT } from "@/lib/prompts";
-import { ImageProcessor } from "@/lib/imageProcessing";
+import { EnhancedImageProcessor } from "@/lib/enhancedImageProcessor";
 
 interface ResearchParams {
   id: string;
@@ -353,13 +353,19 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     console.log(`📝 記事ドラフト生成開始: ${prompt}`);
 
     const { response } = await model.generateContent([
-      `あなたはプロのニュース記者です。収集された情報を統合し、ニュース記事の下書きを作成してください。
-  画像は含めず、テキストのみのドラフトを作成してください。` +
-        `以下の情報を元に、「${prompt}」に関するニュース記事の下書きを作成してください：
-  ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}`,
+      `あなたはプロのニュース記者です。収集された情報を統合し、画像との関連性を考慮したニュース記事の下書きを作成してください。
+      
+      以下の点に特に注意してください：
+      1. 視覚的に補完できる情報（人物の外見、場所の様子、物の形状など）は詳細に記述してください
+      2. 記事の流れに沿って、視覚情報と文章情報が相互に補完し合うように構成してください
+      3. 各段落は一つの明確なトピックに焦点を当て、画像配置がしやすいように構成してください
+      4. 数値データや統計情報は正確に記載し、視覚化できる要素を含めてください
+      
+      以下の情報を元に、「${prompt}」に関するニュース記事の下書きを作成してください：
+      ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}`,
     ]);
-    const draft = response.text();
 
+    const draft = response.text();
     console.log(`📝 記事ドラフト生成完了: ${draft.substring(0, 100)}${draft.length > 100 ? "..." : ""}`);
 
     return draft;
@@ -368,24 +374,33 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
   async writeFinalReport(prompt: string, learnings: string[], visitedUrls: string[], images: any[] = []) {
     const articleDraft = await this.generateArticleDraft(prompt, learnings);
 
-    const imageProcessor = new ImageProcessor();
-
-    const articleWithImages = await imageProcessor.processImagesForArticle(articleDraft, images);
+    const imageProcessor = new EnhancedImageProcessor();
+    const articleWithImages = await imageProcessor.integrateImagesWithArticle(articleDraft, images);
 
     const { response } = await model.generateContent([
       DEEP_FINAL_REPORT_PROMPT() +
-        `プロンプト「${prompt}」を使用して、以下の記事原稿をもとに最終的なニュース記事を作成してください。
-  記事には既に画像配置マーカー[IMAGE_TAG_...]が含まれています。これらのマーカーの位置を尊重して記事を生成してください。
-  
-  ${articleWithImages}
-  
-  利用可能な画像の情報：
-  ${images.map((img) => `[IMAGE_TAG_${img.id}]: ${img.analysis || "関連画像"}`).join("\n\n")}`,
+        `プロンプト「${prompt}」を使用して、以下の記事原稿と画像配置に基づいて最終的なニュース記事を作成してください。
+      
+      記事には既に画像配置マーカー[IMAGE_TAG_...]が含まれています。これらのマーカーの位置を尊重して記事を生成してください。
+      各マーカーはその場所に関連性の高い画像が配置されるべきことを示しています。
+      
+      ${articleWithImages}
+      
+      利用可能な画像の情報：
+      ${images.map((img) => `[IMAGE_TAG_${img.id}]: ${img.analysis || "関連画像"}`).join("\n\n")}
+      
+      特に以下の点に注意してください：
+      1. 画像の内容と周囲のテキストの関連性を強化する追加の文脈や説明を含めてください
+      2. 画像と記事の自然な流れを保ち、読者の理解を深める配置を維持してください
+      3. 画像キャプションを追加して、画像の内容と記事の関連性を明確にしてください
+      4. 画像の間隔が近すぎる場合は、必要に応じて一部の画像を省略しても構いません
+      `,
     ]);
+
     let report = response.text();
 
     images.forEach((img) => {
-      const imgTag = `\n\n![${img.alt || "関連画像"}](${img.url})\n*${img.analysis || "関連画像"}*\n\n`;
+      const imgTag = `\n\n![${img.alt || "関連画像"}](${img.url})\n*${img.analysis ? img.analysis.split("\n")[0] : "関連画像"}*\n\n`;
       report = report.replace(`[IMAGE_TAG_${img.id}]`, imgTag);
     });
 
