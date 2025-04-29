@@ -3,13 +3,7 @@ import { getDrizzleClient } from "@/lib/db";
 import { researches } from "@/db/schema";
 
 export async function action({ request, context }: Route.LoaderArgs) {
-  const { query, depth, breadth, questions, answers } = (await request.json()) as any;
-  const user = "unknown";
-
-  const processedQuestions = questions.map((question: string, i: number) => ({
-    question,
-    answer: answers[i] || "",
-  }));
+  const { query, depth, breadth } = (await request.json()) as any;
 
   const db = getDrizzleClient();
 
@@ -19,9 +13,7 @@ export async function action({ request, context }: Route.LoaderArgs) {
       query,
       depth,
       breadth,
-      questions: JSON.stringify(processedQuestions),
       status: 0,
-      user,
     })
     .$returningId();
 
@@ -35,7 +27,6 @@ export async function action({ request, context }: Route.LoaderArgs) {
         query,
         depth,
         breadth,
-        questions: processedQuestions,
       },
     });
   } catch (error) {

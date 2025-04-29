@@ -25,14 +25,12 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
       let allImages = [];
 
       try {
-        const { query, depth, breadth, questions } = event.payload;
+        const { query, depth, breadth } = event.payload;
 
         await db.update(researches).set({ status: 1 }).where(eq(researches.id, id));
 
-        const fullQuery = `初期クエリ: ${query}\nフォローアップQ&A:\n${questions.map((q) => `Q: ${q.question}\nA: ${q.answer}`).join("\n")}`;
-
         const serpQueries = await step.do("generate-search-queries", async () => {
-          return await this.generateSerpQueries(fullQuery, parseInt(breadth));
+          return await this.generateSerpQueries(query, parseInt(breadth));
         });
 
         let allLearnings: string[] = [];
@@ -146,7 +144,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         }
 
         const report = await step.do("write-final-report", async () => {
-          return await this.writeFinalReport(fullQuery, allLearnings, allUrls, allImages);
+          return await this.writeFinalReport(query, allLearnings, allUrls, allImages);
         });
 
         await db
@@ -269,7 +267,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
       const input = {
         image: [...new Uint8Array(blob)],
         prompt: "この画像を分析して、何が写っているか説明してください。",
-        max_tokens: 512,
+        max_tokens: 1028,
       };
 
       const response = await this.env.AI.run("@cf/llava-hf/llava-1.5-7b-hf", input);
@@ -295,7 +293,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
       {
         role: "user",
         content: `プロンプト「${prompt}」を使用して、以下のすべての知見を含むWebまとめ記事を作成してください。
-記事の途中に画像を適切に配置してください。画像の位置は[画像1]、[画像2]のような形式で明示してください:\n\n${learnings
+記事の途中に画像を適切に配置してください。画像の位置は必ず[画像1]、[画像2]のような形式で明示してください:\n\n${learnings
           .map((learning, index) => `${index + 1}. ${learning}`)
           .join("\n")}${imageInsertionPositions}`,
       },

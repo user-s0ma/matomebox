@@ -1,4 +1,4 @@
-import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, Link } from "react-router";
 import type { Route } from "./+types/root";
 import "./app.css";
 
@@ -26,9 +26,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <header className="bg-blue-700 text-white p-4">
-          <div className="container mx-auto flex justify-between items-center">
+          <Link to="/" className="container mx-auto flex justify-between items-center">
             <h1 className="text-xl font-bold">AI Research Assistant</h1>
-          </div>
+          </Link>
         </header>
         <main className="container mx-auto py-4">{children}</main>
         <footer className="bg-gray-100 p-4 mt-8">

@@ -6,12 +6,10 @@ export const researches = mysqlTable("researches", {
   query: varchar("query", { length: 255 }).notNull(),
   depth: varchar("depth", { length: 255 }).notNull(),
   breadth: varchar("breadth", { length: 255 }).notNull(),
-  questions: text("questions").notNull(),
   images: text("images"),
   status: int("status").notNull(),
   result: text("result"),
   interim_results: text("interim_results"),
-  user: varchar("user", { length: 255 }).notNull().default("unknown"),
   created_at: timestamp("created_at").defaultNow(),
 });
 

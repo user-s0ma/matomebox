@@ -1,17 +1,15 @@
 import type { Route } from "./+types/_index";
 import { Link } from "react-router";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { researches } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
 import { timeAgo } from "@/lib/utils";
+import { useNavigate } from "react-router";
 
 export async function loader() {
-  const user = "unknown";
-
   const db = getDrizzleClient();
 
   const researchResults = await db.query.researches.findMany({
-    where: eq(researches.user, user),
     orderBy: [desc(researches.created_at)],
   });
 
@@ -20,6 +18,7 @@ export async function loader() {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { researches } = loaderData;
+  const navigate = useNavigate();
 
   function getStatusBadge(status: number) {
     switch (status) {
@@ -51,6 +50,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       if (!response.ok) {
         throw new Error("リサーチの削除に失敗しました");
       }
+
+      navigate(0)
     } catch (error) {
       console.error("Error deleting research:", error);
     }

@@ -185,7 +185,7 @@ async function extractContent(browser: Browser, url: string): Promise<SearchResu
 
           const width = parseInt(img.getAttribute("width") || "0");
           const height = parseInt(img.getAttribute("height") || "0");
-          if ((width > 0 && width < 100) || (height > 0 && height < 100)) {
+          if ((width > 0 && width < 150) || (height > 0 && height < 150)) {
             return false;
           }
 

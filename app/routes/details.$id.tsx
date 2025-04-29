@@ -1,19 +1,18 @@
 import type { Route } from "./+types/details.$id";
 import { useNavigate, Link } from "react-router";
-import { marked } from "marked";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { researches } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
 import { timeAgo } from "@/lib/utils";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 export async function loader({ params }: { params: { id: string } }) {
-  const { id } = await params;
-  const user = "unknown";
+  const { id } = params;
 
   const db = getDrizzleClient();
 
   const research = await db.query.researches.findFirst({
-    where: and(eq(researches.id, id), eq(researches.user, user)),
+    where: eq(researches.id, id),
   });
 
   if (!research) {
@@ -29,19 +28,11 @@ export async function loader({ params }: { params: { id: string } }) {
     console.error("画像データのパースに失敗しました:", e);
   }
 
-  let content = (research.result || "Report is still running...").replaceAll("```markdown", "").replaceAll("```", "");
-
-  if (!content.includes("<img src=")) {
-    images.forEach((img: any, idx: number) => {
-      const imgTag = `\n\n![${img.alt || `関連画像 ${idx + 1}`}](${img.url})\n*${img.analysis || "関連画像"}*\n\n`;
-      content = content.replace(`[画像${idx + 1}]`, imgTag);
-    });
-  }
+  let content = (research.result || "レポートは実行中です...").replaceAll("```markdown", "").replaceAll("```", "");
 
   const processedResearch = {
     ...research,
-    questions: JSON.parse(research.questions as unknown as string),
-    report_html: await marked.parse(content),
+    content: content,
     images: images,
   };
 
@@ -113,22 +104,13 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
         </div>
       </div>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">フォローアップ質問</h3>
-        <div className="space-y-2">
-          {research.questions.map((qa: any, index: number) => (
-            <div key={index} className="border-b pb-2">
-              <div className="font-medium">{qa.question}</div>
-              <div className="text-gray-700">{qa.answer}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">リサーチレポート</h3>
         {research.status === 1 ? (
           <div className="p-4 bg-yellow-50 rounded">リサーチは現在進行中です...</div>
         ) : (
-          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: research.report_html }} />
+          <div className="prose max-w-none">
+            <MarkdownRenderer markdown={research.content} images={research.images} />
+          </div>
         )}
       </div>
       <div className="flex space-x-4 mt-8">
