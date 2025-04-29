@@ -2,8 +2,10 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { eq } from "drizzle-orm";
 import { researches } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
+import { model } from "@/lib/gemini";
 import { getBrowser, webSearch } from "@/lib/webSearch";
 import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT, DEEP_FINAL_REPORT_PROMPT } from "@/lib/prompts";
+import { ImageProcessor } from "@/lib/imageProcessing";
 
 interface ResearchParams {
   id: string;
@@ -22,16 +24,27 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
       const { id } = event.payload;
 
-      let allImages = [];
+      let allImages: any[] = [];
 
       try {
         const { query, depth, breadth } = event.payload;
 
         await db.update(researches).set({ status: 1 }).where(eq(researches.id, id));
 
-        const serpQueries = await step.do("generate-search-queries", async () => {
-          return await this.generateSerpQueries(query, parseInt(breadth));
-        });
+        const serpQueries = await step.do(
+          "generate-search-queries",
+          {
+            retries: {
+              limit: 1,
+              delay: "10 seconds",
+              backoff: "exponential",
+            },
+            timeout: "10 minutes",
+          },
+          async () => {
+            return await this.generateSerpQueries(query, parseInt(breadth));
+          }
+        );
 
         let allLearnings: string[] = [];
         let allUrls: string[] = [];
@@ -40,51 +53,43 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
           try {
             const browserInstance = await browser.getActiveBrowser();
 
-            const result = await step.do(`search-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`, async () => {
-              return await webSearch(browserInstance, serpQuery.query, 5);
-            });
-
-            const extractedImages = result.flatMap((item) => item.images || []).filter((img) => img.url);
-
-            const selectedImages = extractedImages.slice(0, 10 - allImages.length);
-
-            if (selectedImages.length > 0) {
-              for (const image of selectedImages) {
-                try {
-                  const checkResponse = await fetch(image.url, {
-                    method: "HEAD",
-                    headers: { Accept: "image/*" },
-                  });
-
-                  if (!checkResponse.ok || !checkResponse.headers.get("content-type")?.startsWith("image/")) {
-                    console.log(`無効な画像URLをスキップ: ${image.url}`);
-                    continue;
-                  }
-
-                  const analysis = await step.do(`analyze-image-${image.url.substring(0, 30).replace(/[^a-zA-Z0-9]/g, "-")}`, async () => {
-                    return await this.analyzeImage(image.url);
-                  });
-
-                  if (analysis && typeof analysis === "string" && !analysis.includes("失敗")) {
-                    allImages.push({
-                      ...image,
-                      analysis,
-                    });
-
-                    if (allImages.length >= 10) break;
-                  }
-                } catch (error) {
-                  console.error(`画像分析エラー: ${image.url}`, error);
-                }
+            const result = await step.do(
+              `search-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
+              {
+                retries: {
+                  limit: 1,
+                  delay: "10 seconds",
+                  backoff: "exponential",
+                },
+                timeout: "10 minutes",
+              },
+              async () => {
+                return await webSearch(browserInstance, serpQuery.query, 5);
               }
-            }
+            );
 
-            const { learnings, followUpQuestions } = await step.do(`process-results-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`, async () => {
-              return await this.processSerpResult(serpQuery.query, result, Math.ceil(parseInt(breadth) / 2));
-            });
+            const { learnings, followUpQuestions, processedImages } = await step.do(
+              `process-results-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
+              {
+                retries: {
+                  limit: 1,
+                  delay: "10 seconds",
+                  backoff: "exponential",
+                },
+                timeout: "10 minutes",
+              },
+              async () => {
+                return await this.processSerpResult(serpQuery.query, result, Math.ceil(parseInt(breadth) / 2));
+              }
+            );
 
             allLearnings = [...allLearnings, ...learnings];
             allUrls = [...allUrls, ...result.map((item) => item.url).filter(Boolean)];
+
+            if (processedImages && processedImages.length > 0) {
+              const selectedImages = processedImages.slice(0, 10 - allImages.length);
+              allImages = [...allImages, ...selectedImages];
+            }
 
             await db
               .update(researches)
@@ -99,43 +104,62 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
               .where(eq(researches.id, id));
 
             if (parseInt(depth) > 1) {
-              const nextQueries = await step.do(`generate-followup-queries-${serpQuery.query.substring(0, 15).replace(/\s+/g, "-")}`, async () => {
-                return await this.generateSerpQueries(followUpQuestions.join("\n"), Math.ceil(parseInt(breadth) / 2), allLearnings);
-              });
+              const nextQueries = await step.do(
+                `generate-followup-queries-${serpQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                {
+                  retries: {
+                    limit: 1,
+                    delay: "10 seconds",
+                    backoff: "exponential",
+                  },
+                  timeout: "10 minutes",
+                },
+                async () => {
+                  return await this.generateSerpQueries(followUpQuestions.join("\n"), Math.ceil(parseInt(breadth) / 2), allLearnings);
+                }
+              );
 
               for (const nextQuery of nextQueries) {
-                const nextResult = await step.do(`deep-search-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`, async () => {
-                  return await webSearch(browserInstance, nextQuery.query, 3);
-                });
-
-                const extractedDeepImages = nextResult.flatMap((item) => item.images || []).filter((img) => img.url);
-                const selectedDeepImages = extractedDeepImages.slice(0, 10 - allImages.length);
-
-                if (selectedDeepImages.length > 0) {
-                  for (const image of selectedDeepImages) {
-                    try {
-                      const analysis = await step.do(`analyze-deep-image-${image.url.substring(0, 30).replace(/[^a-zA-Z0-9]/g, "-")}`, async () => {
-                        return await this.analyzeImage(image.url);
-                      });
-
-                      allImages.push({
-                        ...image,
-                        analysis,
-                      });
-
-                      if (allImages.length >= 10) break;
-                    } catch (error) {
-                      console.error(`深層画像分析エラー: ${image.url}`, error);
-                    }
+                const nextResult = await step.do(
+                  `deep-search-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                  {
+                    retries: {
+                      limit: 1,
+                      delay: "10 seconds",
+                      backoff: "exponential",
+                    },
+                    timeout: "10 minutes",
+                  },
+                  async () => {
+                    return await webSearch(browserInstance, nextQuery.query, 3);
                   }
-                }
+                );
 
-                const nextProcessResult = await step.do(`deep-process-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`, async () => {
-                  return await this.processSerpResult(nextQuery.query, nextResult);
-                });
+                const nextProcessResult = await step.do(
+                  `deep-process-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                  {
+                    retries: {
+                      limit: 1,
+                      delay: "10 seconds",
+                      backoff: "exponential",
+                    },
+                    timeout: "10 minutes",
+                  },
+                  async () => {
+                    return await this.processSerpResult(nextQuery.query, nextResult);
+                  }
+                );
 
                 allLearnings = [...allLearnings, ...nextProcessResult.learnings];
                 allUrls = [...allUrls, ...nextResult.map((item) => item.url).filter(Boolean)];
+
+                if (nextProcessResult.processedImages && nextProcessResult.processedImages.length > 0) {
+                  const remainingSlots = 10 - allImages.length;
+                  if (remainingSlots > 0) {
+                    const selectedDeepImages = nextProcessResult.processedImages.slice(0, remainingSlots);
+                    allImages = [...allImages, ...selectedDeepImages];
+                  }
+                }
               }
             }
           } catch (error) {
@@ -143,9 +167,20 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
           }
         }
 
-        const report = await step.do("write-final-report", async () => {
-          return await this.writeFinalReport(query, allLearnings, allUrls, allImages);
-        });
+        const report = await step.do(
+          "write-final-report",
+          {
+            retries: {
+              limit: 1,
+              delay: "10 seconds",
+              backoff: "exponential",
+            },
+            timeout: "10 minutes",
+          },
+          async () => {
+            return await this.writeFinalReport(query, allLearnings, allUrls, allImages);
+          }
+        );
 
         await db
           .update(researches)
@@ -178,59 +213,92 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     }
   }
 
+  async integrateImageAnalysis(markdown: string, images: any[]): Promise<{ enhancedMarkdown: string; analyzedImages: any[] }> {
+    const analyzedImages = [...images];
+    let enhancedMarkdown = markdown;
+
+    const sortedImages = [...analyzedImages].sort((a, b) => (a.position || 0) - (b.position || 0));
+
+    for (const img of sortedImages) {
+      try {
+        console.log(`🖼️ 画像分析開始: ${img.url}`);
+        const analysis = await this.analyzeImage(img.url);
+        img.analysis = analysis;
+
+        let contextAnalysis = analysis;
+        if (img.context) {
+          contextAnalysis += `\n画像の周辺テキスト: ${img.context}`;
+        }
+
+        const placeholder = `[IMAGE_PLACEHOLDER_${img.id}]`;
+        const replacement = `\n\n[IMAGE_CONTEXT: ${contextAnalysis}]\n\n[IMAGE_TAG_${img.id}]\n\n`;
+
+        enhancedMarkdown = enhancedMarkdown.replace(placeholder, replacement);
+      } catch (error) {
+        console.error(`画像分析エラー: ${img.url}`, error);
+        enhancedMarkdown = enhancedMarkdown.replace(`[IMAGE_PLACEHOLDER_${img.id}]`, "");
+      }
+    }
+
+    return { enhancedMarkdown, analyzedImages };
+  }
+
   async generateSerpQueries(query: string, numQueries: number = 5, learnings?: string[]) {
-    const messages = [
-      {
-        role: "system",
-        content: DEEP_SEARCH_QUERIES_PROMPT(),
-      },
-      {
-        role: "user",
-        content: `以下の研究課題に対して最大${numQueries}個の検索クエリを生成してください：${query}${learnings ? `\n参考情報：\n${learnings.join("\n")}` : ""}`,
-      },
-    ];
-
     console.log(`📄 検索クエリ生成開始`);
-    const response = await this.env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages, stream: false });
-    // @ts-ignore
-    const content: string = response.response;
+
+    const { response } = await model.generateContent([
+      DEEP_SEARCH_QUERIES_PROMPT() +
+        `\n\n以下のテーマに関する検索クエリを${numQueries}個生成してください：\n${query}${learnings ? `\n\n参考情報：\n${learnings.join("\n")}` : ""}`,
+    ]);
+    const content = response.text();
+
     console.log(`📄 検索クエリ生成完了: ${content.substring(0, 100)}${content.length > 100 ? "..." : ""}`);
-
     const lines = content.split("\n").filter((line) => line.trim() !== "");
-    const queries = lines.slice(0, numQueries).map((query) => ({
-      query: query.replace(/^\d+\.\s*/, ""),
-      researchGoal: "Gather information related to the main query",
-    }));
-
+    const queries = lines
+      .map((line) => {
+        const query = line.replace(/^\d+\.\s*/, "").trim();
+        return {
+          query: query,
+          researchGoal: "Gather information related to the main query",
+        };
+      })
+      .slice(0, numQueries);
     return queries;
   }
 
   async processSerpResult(query: string, result: any[], numFollowUpQuestions: number = 5, numLearnings: number = 5) {
-    const contents = result.map((item) => item.markdown).filter(Boolean);
+    console.log(`検索結果処理: ${query}`);
 
-    if (contents.length === 0) {
+    const processedResults = await Promise.all(
+      result.map(async (item) => {
+        if (!item.markdown || !item.images || item.images.length === 0) {
+          return { enhancedMarkdown: item.markdown || "", analyzedImages: [] };
+        }
+
+        return await this.integrateImageAnalysis(item.markdown, item.images);
+      })
+    );
+
+    const processedImages = processedResults.flatMap((result) => result.analyzedImages).filter((img) => img.analysis);
+
+    const contentsWithImages = processedResults.map((result) => result.enhancedMarkdown);
+
+    if (contentsWithImages.length === 0) {
       console.warn(`検索クエリ「${query}」の結果が空です`);
       return {
         learnings: ["検索結果が見つかりませんでした。"],
         followUpQuestions: ["他のキーワードで検索すべきですか？"],
+        processedImages: [],
       };
     }
 
-    const messages = [
-      {
-        role: "system",
-        content: DEEP_PROCESS_RESULTS_PROMPT(),
-      },
-      {
-        role: "user",
-        content: `以下の検索結果を分析してください：\n\n検索クエリ: ${query}\n\n検索結果:${contents.join("\n\n---\n\n")}`,
-      },
-    ];
-
     console.log(`📄 検索結果処理開始`);
-    const response = await this.env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages, stream: false });
-    // @ts-ignore
-    const content: string = response.response;
+
+    const { response } = await model.generateContent([
+      DEEP_PROCESS_RESULTS_PROMPT() + `以下の検索結果を分析してください：\n\n検索クエリ: ${query}\n\n検索結果:${contentsWithImages.join("\n\n---\n\n")}`,
+    ]);
+    const content = response.text();
+
     console.log(`📄 検索結果処理完了: ${content.substring(0, 100)}${content.length > 100 ? "..." : ""}`);
 
     const sections = content.split(/#+\s*Follow-up Questions/i);
@@ -255,7 +323,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         .slice(0, numFollowUpQuestions);
     }
 
-    return { learnings, followUpQuestions };
+    return { learnings, followUpQuestions, processedImages };
   }
 
   async analyzeImage(imageUrl: string) {
@@ -264,50 +332,61 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
       const res = await fetch(imageUrl);
       const blob = await res.arrayBuffer();
-      const input = {
-        image: [...new Uint8Array(blob)],
-        prompt: "この画像を分析して、何が写っているか説明してください。",
-        max_tokens: 1028,
-      };
 
-      const response = await this.env.AI.run("@cf/llava-hf/llava-1.5-7b-hf", input);
-      return response.description;
+      const { response } = await model.generateContent([
+        "この画像には何が表示されていますか？詳しく説明してください。",
+        {
+          inlineData: {
+            data: Buffer.from(blob).toString("base64"),
+            mimeType: res.headers.get("content-type") || "application/octet-stream",
+          },
+        },
+      ]);
+      return response.text();
     } catch (error) {
       console.error(`画像分析に失敗しました: ${error}`);
       return "画像の分析に失敗しました";
     }
   }
 
+  async generateArticleDraft(prompt: string, learnings: string[]): Promise<string> {
+    console.log(`📝 記事ドラフト生成開始: ${prompt}`);
+
+    const { response } = await model.generateContent([
+      `あなたはプロのニュース記者です。収集された情報を統合し、ニュース記事の下書きを作成してください。
+  画像は含めず、テキストのみのドラフトを作成してください。` +
+        `以下の情報を元に、「${prompt}」に関するニュース記事の下書きを作成してください：
+  ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}`,
+    ]);
+    const draft = response.text();
+
+    console.log(`📝 記事ドラフト生成完了: ${draft.substring(0, 100)}${draft.length > 100 ? "..." : ""}`);
+
+    return draft;
+  }
+
   async writeFinalReport(prompt: string, learnings: string[], visitedUrls: string[], images: any[] = []) {
-    const imageMarkdowns = images.map((img, idx) => {
-      return `[画像${idx + 1}: ${img.alt || "関連画像"}]\n- URL: ${img.url}\n- 説明: ${img.analysis || "説明なし"}`;
-    });
+    const articleDraft = await this.generateArticleDraft(prompt, learnings);
 
-    const imageInsertionPositions = images.length > 0 ? `\n\n記事内には以下の画像を適切な位置に挿入してください：\n${imageMarkdowns.join("\n\n")}` : "";
+    const imageProcessor = new ImageProcessor();
 
-    const messages = [
-      {
-        role: "system",
-        content: DEEP_FINAL_REPORT_PROMPT(),
-      },
-      {
-        role: "user",
-        content: `プロンプト「${prompt}」を使用して、以下のすべての知見を含むWebまとめ記事を作成してください。
-記事の途中に画像を適切に配置してください。画像の位置は必ず[画像1]、[画像2]のような形式で明示してください:\n\n${learnings
-          .map((learning, index) => `${index + 1}. ${learning}`)
-          .join("\n")}${imageInsertionPositions}`,
-      },
-    ];
+    const articleWithImages = await imageProcessor.processImagesForArticle(articleDraft, images);
 
-    console.log(`📄 最終レポート生成開始`);
-    const response = await this.env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages, stream: false });
-    // @ts-ignore
-    let report: string = response.response;
-    console.log(`📄 最終レポート生成完了: ${report.substring(0, 100)}${report.length > 100 ? "..." : ""}`);
+    const { response } = await model.generateContent([
+      DEEP_FINAL_REPORT_PROMPT() +
+        `プロンプト「${prompt}」を使用して、以下の記事原稿をもとに最終的なニュース記事を作成してください。
+  記事には既に画像配置マーカー[IMAGE_TAG_...]が含まれています。これらのマーカーの位置を尊重して記事を生成してください。
+  
+  ${articleWithImages}
+  
+  利用可能な画像の情報：
+  ${images.map((img) => `[IMAGE_TAG_${img.id}]: ${img.analysis || "関連画像"}`).join("\n\n")}`,
+    ]);
+    let report = response.text();
 
-    images.forEach((img, idx) => {
-      const imgTag = `\n\n![${img.alt || `関連画像 ${idx + 1}`}](${img.url})\n*${img.analysis || "関連画像"}*\n\n`;
-      report = report.replace(`[画像${idx + 1}]`, imgTag);
+    images.forEach((img) => {
+      const imgTag = `\n\n![${img.alt || "関連画像"}](${img.url})\n*${img.analysis || "関連画像"}*\n\n`;
+      report = report.replace(`[IMAGE_TAG_${img.id}]`, imgTag);
     });
 
     const urlsSection = `\n\n## 参考サイト\n\n${visitedUrls.map((url) => `- ${url}`).join("\n")}`;

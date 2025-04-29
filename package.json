@@ -1,44 +1,45 @@
 {
-	"name": "matome-box",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"dev": "react-router dev",
-		"build": "react-router build",
-		"dev:remote": "npm run build && wrangler dev --remote",
-		"deploy": "npm run build && wrangler deploy",
-		"cf-typegen": "wrangler types",
-		"typecheck": "npm run cf-typegen && react-router typegen && tsc -b",
-		"drizzle:generate": "drizzle-kit generate",
-		"drizzle:migrate": "drizzle-kit migrate",
-		"drizzle:studio": "drizzle-kit studio"
-	},
-	"dependencies": {
-		"@cloudflare/puppeteer": "^1.0.2",
-		"@react-router/node": "^7.5.3",
-		"@tidbcloud/serverless": "0.2.0",
-		"drizzle-orm": "^0.43.1",
-		"mysql2": "^3.14.1",
-		"isbot": "^5",
-		"react": "^19",
-		"react-dom": "^19",
-		"react-router": "^7.5.0",
-		"uuid": "11.1.0"
-	},
-	"devDependencies": {
-		"@cloudflare/vite-plugin": "^1.0.0",
-		"@cloudflare/workers-types": "^4.20250429.0",
-		"@react-router/dev": "^7.5.0",
-		"@react-router/fs-routes": "^7.5.3",
-		"@tailwindcss/vite": "^4",
-		"@types/node": "^20",
-		"@types/react": "^19",
-		"@types/react-dom": "^19",
-		"tailwindcss": "^4.0.0",
-		"typescript": "^5",
-		"vite": "^6.2.1",
-		"vite-tsconfig-paths": "^5.1.4",
-		"wrangler": "^4.13.2",
-		"drizzle-kit": "^0.31.0"
-	}
+  "name": "matome-box",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "dev:remote": "npm run build && wrangler dev --remote",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "typecheck": "npm run cf-typegen && react-router typegen && tsc -b",
+    "drizzle:generate": "drizzle-kit generate",
+    "drizzle:migrate": "drizzle-kit migrate",
+    "drizzle:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^1.0.2",
+    "@google/generative-ai": "0.24.0",
+    "@react-router/node": "^7.5.3",
+    "@tidbcloud/serverless": "0.2.0",
+    "drizzle-orm": "^0.43.1",
+    "mysql2": "^3.14.1",
+    "isbot": "^5",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router": "^7.5.0",
+    "uuid": "11.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.0.0",
+    "@cloudflare/workers-types": "^4.20250429.0",
+    "@react-router/dev": "^7.5.0",
+    "@react-router/fs-routes": "^7.5.3",
+    "@tailwindcss/vite": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5",
+    "vite": "^6.2.1",
+    "vite-tsconfig-paths": "^5.1.4",
+    "wrangler": "^4.13.2",
+    "drizzle-kit": "^0.31.0"
+  }
 }

@@ -1,4 +1,4 @@
-import puppeteer, { Browser } from "@cloudflare/puppeteer";
+import puppeteer, { Browser, Page } from "@cloudflare/puppeteer";
 import { env } from "cloudflare:workers";
 
 export type SearchResult = {
@@ -8,16 +8,14 @@ export type SearchResult = {
   markdown: string;
   links: Array<string>;
   images: Array<{
+    id: string;
     url: string;
     alt: string;
     width?: number;
     height?: number;
+    position?: number;
+    context?: string;
   }>;
-};
-
-type Env = {
-  AI: Ai;
-  BROWSER: Fetcher;
 };
 
 export class ResearchBrowser {
@@ -42,12 +40,16 @@ export class ResearchBrowser {
   }
 
   private async launchBrowser(): Promise<Browser> {
-    return await puppeteer.launch((env as Env).BROWSER, { keep_alive: 600000 });
+    return await puppeteer.launch(env.BROWSER, { keep_alive: 600000 });
   }
 
   async close() {
     if (this.browser) {
-      await this.browser.close();
+      try {
+        await this.browser.close();
+      } catch (error) {
+        console.log("ブラウザを閉じる際にエラーが発生しました：", error);
+      }
       this.browser = null;
     }
   }
@@ -57,221 +59,238 @@ export async function getBrowser(): Promise<ResearchBrowser> {
   return new ResearchBrowser();
 }
 
-async function performSearch(browser: Browser, query: string, limit: number): Promise<string[]> {
-  const page = await browser.newPage();
-  try {
-    const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
-    console.log(`📄 コンテンツ抽出開始: ${searchUrl}`);
-    await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
-    console.log("✅ ページの読み込みが完了しました");
+async function performSearch(page: Page, query: string, limit: number): Promise<string[]> {
+  const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+  console.log(`📄 コンテンツ抽出開始: ${searchUrl}`);
+  await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector('article[data-testid="result"] a[data-testid="result-title-a"]', { timeout: 10000 });
 
-    await page.waitForSelector('article[data-testid="result"] a[data-testid="result-title-a"]', {
-      timeout: 10000,
-    });
+  const urls = await page.evaluate((max) => {
+    const anchors = Array.from(document.querySelectorAll('article[data-testid="result"] a[data-testid="result-title-a"]'));
+    return anchors
+      .map((a) => (a as HTMLAnchorElement).href)
+      .filter((h) => h.startsWith("http"))
+      .slice(0, max);
+  }, limit);
 
-    const urls = await page.evaluate((max) => {
-      const anchors = Array.from(document.querySelectorAll('article[data-testid="result"] a[data-testid="result-title-a"]'));
-      return anchors
-        .map((a) => (a as HTMLAnchorElement).href)
-        .filter((href) => href.startsWith("http"))
-        .slice(0, max);
-    }, limit);
-
-    console.log(`📋 抽出されたURL (${urls.length}件):`);
-    urls.forEach((url, i) => console.log(`  ${i + 1}. ${url}`));
-
-    return urls;
-  } catch (error) {
-    console.error(`検索に失敗しました: ${(error as Error).message}`);
-    return [];
-  } finally {
-    await page.close();
-  }
+  console.log(`📋 抽出されたURL (${urls.length}件):`, urls);
+  return urls;
 }
 
-async function extractContent(browser: Browser, url: string): Promise<SearchResult> {
+async function extractContent(page: Page, url: string): Promise<SearchResult> {
   console.log(`📄 コンテンツ抽出開始: ${url}`);
-  let page;
-  try {
-    console.log(`🔄 新規ページを作成中...`);
-    page = await browser.newPage();
-    console.log(`✅ 新規ページの作成に成功しました`);
-    await page.goto(url, { waitUntil: "domcontentloaded" });
-    console.log("✅ ページの読み込みが完了しました");
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  console.log("✅ ページの読み込みが完了しました");
 
-    await page.evaluate(() => {
-      const closeButtons = Array.from(document.querySelectorAll("button, a, div[role='button']")).filter((el) => {
-        const text = (el as HTMLElement).innerText.toLowerCase();
-        return (
-          text.includes("close") ||
-          text.includes("×") ||
-          text.includes("accept") ||
-          text.includes("agree") ||
-          text.includes("got it") ||
-          text.includes("i understand")
-        );
-      });
-
-      closeButtons.forEach((btn) => (btn as HTMLElement).click());
+  await page.evaluate(() => {
+    const closeButtons = Array.from(document.querySelectorAll("button, a, div[role='button']")).filter((el) => {
+      const text = (el as HTMLElement).innerText.toLowerCase();
+      return (
+        text.includes("close") ||
+        text.includes("×") ||
+        text.includes("accept") ||
+        text.includes("agree") ||
+        text.includes("got it") ||
+        text.includes("i understand")
+      );
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    closeButtons.forEach((btn) => (btn as HTMLElement).click());
+  });
 
-    console.log("📝 ページコンテンツを抽出中...");
-    const { title, description, content, links, images } = await page.evaluate(() => {
-      const pageTitle = document.title || "タイトルなし";
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const metaDescription = document.querySelector('meta[name="description"]');
-      const descriptionText = metaDescription ? metaDescription.getAttribute("content") || "説明なし" : "説明なし";
+  console.log("📝 ページコンテンツを抽出中...");
+  const { title, description, content, links, images } = await page.evaluate(() => {
+    const pageTitle = document.title || "タイトルなし";
 
-      const body = document.body.cloneNode(true) as HTMLElement;
+    const metaDescription = document.querySelector('meta[name="description"]');
+    const descriptionText = metaDescription ? metaDescription.getAttribute("content") || "説明なし" : "説明なし";
 
-      const unwantedSelectors = [
-        "script",
-        "style",
-        "svg",
-        "iframe",
-        "nav",
-        "header",
-        "footer",
-        "form",
-        "noscript",
-        "[aria-hidden='true']",
-        ".ad",
-        ".ads",
-        ".advertisement",
-        ".cookie-banner",
-        "#cookie-notice",
-        ".gdpr",
-        ".consent",
-        ".popup",
-      ];
+    const body = document.body.cloneNode(true) as HTMLElement;
 
-      unwantedSelectors.forEach((selector) => {
-        body.querySelectorAll(selector).forEach((el) => el.remove());
-      });
+    const unwantedSelectors = [
+      "script",
+      "style",
+      "svg",
+      "iframe",
+      "nav",
+      "header",
+      "footer",
+      "form",
+      "noscript",
+      "[aria-hidden='true']",
+      ".ad",
+      ".ads",
+      ".advertisement",
+      ".cookie-banner",
+      "#cookie-notice",
+      ".gdpr",
+      ".consent",
+      ".popup",
+    ];
 
-      let contentElement = body;
+    unwantedSelectors.forEach((selector) => {
+      body.querySelectorAll(selector).forEach((el) => el.remove());
+    });
 
-      const contentSelectors = ["main", "article", ".content", ".post", ".article", ".post-content", "[role='main']", "#content", "#main"];
+    let contentElement = body;
 
-      for (const selector of contentSelectors) {
-        const found = body.querySelector(selector);
-        if (found && found.textContent && found.textContent.length > 500) {
-          contentElement = found as HTMLElement;
-          break;
-        }
+    const contentSelectors = ["main", "article", ".content", ".post", ".article", ".post-content", "[role='main']", "#content", "#main"];
+
+    for (const selector of contentSelectors) {
+      const found = body.querySelector(selector);
+      if (found && found.textContent && found.textContent.length > 500) {
+        contentElement = found as HTMLElement;
+        break;
       }
+    }
 
-      const imageElements = Array.from(body.querySelectorAll("img"));
-      const images = imageElements
-        .filter((img) => {
-          if (!img.src || img.src.startsWith("data:") || img.src.includes("base64")) {
+    const imageElements = Array.from(body.querySelectorAll("img"));
+    const images = imageElements
+      .filter((img) => {
+        if (!img.src || img.src.startsWith("data:") || img.src.includes("base64")) {
+          return false;
+        }
+
+        if (img.src.startsWith("/") || img.src.startsWith("./") || img.src.startsWith("../")) {
+          try {
+            const baseUrl = new URL(document.location.href);
+            img.src = new URL(img.src, baseUrl.origin).href;
+          } catch (e) {
             return false;
           }
+        }
 
-          if (img.src.startsWith("/") || img.src.startsWith("./") || img.src.startsWith("../")) {
-            try {
-              const baseUrl = new URL(document.location.href);
-              img.src = new URL(img.src, baseUrl.origin).href;
-            } catch (e) {
-              return false;
-            }
+        if (!img.src.startsWith("http://") && !img.src.startsWith("https://")) {
+          return false;
+        }
+
+        const width = parseInt(img.getAttribute("width") || "0");
+        const height = parseInt(img.getAttribute("height") || "0");
+        if ((width > 0 && width < 200) || (height > 0 && height < 200)) {
+          return false;
+        }
+
+        return true;
+      })
+      .slice(0, 5)
+      .map((img, index) => {
+        const position = img.getBoundingClientRect().top;
+
+        let context = "";
+        const parent = img.parentElement;
+        if (parent) {
+          let prevNode = parent.previousElementSibling;
+          if (prevNode && prevNode.textContent) {
+            context += prevNode.textContent.trim() + " ";
           }
 
-          if (!img.src.startsWith("http://") && !img.src.startsWith("https://")) {
-            return false;
+          if (parent.textContent) {
+            context += parent.textContent.trim() + " ";
           }
 
-          const width = parseInt(img.getAttribute("width") || "0");
-          const height = parseInt(img.getAttribute("height") || "0");
-          if ((width > 0 && width < 150) || (height > 0 && height < 150)) {
-            return false;
+          let nextNode = parent.nextElementSibling;
+          if (nextNode && nextNode.textContent) {
+            context += nextNode.textContent.trim();
           }
+        }
 
-          return true;
-        })
-        .slice(0, 5) // 最大5枚まで
-        .map((img) => ({
+        return {
+          id: `img-${index}-${Date.now()}`,
           url: img.src,
           alt: img.alt || "",
           width: img.width || 0,
           height: img.height || 0,
-        }));
+          position: position,
+          context: context.substring(0, 400),
+        };
+      });
 
-      const allLinks = Array.from(document.querySelectorAll("a"))
-        .map((a) => a.href)
-        .filter((href) => href && href.startsWith("http"));
+    const allLinks = Array.from(document.querySelectorAll("a"))
+      .map((a) => a.href)
+      .filter((href) => href && href.startsWith("http"));
 
-      return {
-        title: pageTitle,
-        description: descriptionText,
-        content: contentElement.innerHTML || "コンテンツなし",
-        links: allLinks,
-        images: images,
-      };
-    });
+    return {
+      title: pageTitle,
+      description: descriptionText,
+      content: contentElement.innerHTML || "コンテンツなし",
+      links: allLinks,
+      images: images,
+    };
+  });
 
-    console.log(`📊 抽出結果:
+  console.log(`📊 抽出結果:
       タイトル: ${title}
       説明: ${description.substring(0, 100)}${description.length > 100 ? "..." : ""}
       リンク数: ${links.length}件
       画像数: ${images.length}件
       コンテンツサイズ: ${content.length}文字`);
 
-    function htmlToMarkdown(html: string): string {
-      return html
-        .replace(/<\/?[^>]+(>|$)/g, " ")
-        .replace(/\s+/g, " ")
-        .replace(/\s{50,}/g, "\n\n")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .trim();
-    }
+  function htmlToMarkdown(html: string, images: any[]): string {
+    let processedHtml = html;
 
-    return {
-      title,
-      description,
-      url,
-      markdown: htmlToMarkdown(content),
-      links,
-      images,
-    };
-  } catch (error) {
-    console.error(`コンテンツ抽出に失敗しました (${url}): ${(error as Error).message}`);
+    const sortedImages = [...images].sort((a, b) => (a.position || 0) - (b.position || 0));
 
-    return {
-      title: "読み込みエラー",
-      description: `ページの読み込みに失敗しました: ${(error as Error).message}`,
-      url,
-      markdown: "コンテンツの抽出に失敗しました",
-      links: [],
-      images: [],
-    };
-  } finally {
-    if (page) {
-      await page.close();
-    }
+    sortedImages.forEach((img) => {
+      const escapedUrl = img.url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const imgRegex = new RegExp(`<img[^>]*src=["']${escapedUrl}["'][^>]*>`, "g");
+      processedHtml = processedHtml.replace(imgRegex, `[IMAGE_PLACEHOLDER_${img.id}]`);
+    });
+
+    let markdown = processedHtml
+      .replace(/<\/?[^>]+(>|$)/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/\s{50,}/g, "\n\n")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .trim();
+
+    return markdown;
   }
+
+  const markdown = htmlToMarkdown(content, images);
+
+  return { title, description, url, markdown, links, images };
 }
 
 export async function webSearch(browser: Browser, query: string, limit = 5): Promise<SearchResult[]> {
   console.log(`🔍 検索開始: "${query}" (最大${limit}件の結果)`);
   const startTime = Date.now();
-  const urls = await performSearch(browser, query, limit);
-  console.log(`⏱️ 検索完了: ${Date.now() - startTime}ms`);
 
-  const promises = urls.map((url) => extractContent(browser, url));
-
-  try {
-    return await Promise.all(promises);
-  } catch (error) {
-    console.error("検索結果の処理中にエラーが発生しました:", error);
-
-    const results = await Promise.allSettled(promises);
-    return results.filter((result): result is PromiseFulfilledResult<SearchResult> => result.status === "fulfilled").map((result) => result.value);
+  let urls: string[];
+  {
+    const page = await browser.newPage();
+    try {
+      urls = await performSearch(page, query, limit);
+    } finally {
+      await page.close();
+    }
   }
+  console.log(`⏱️ 検索完了（${Date.now() - startTime}ms）: ${urls.length} 件`);
+
+  const results: SearchResult[] = [];
+  for (const url of urls) {
+    let page;
+    try {
+      page = await browser.newPage();
+      const res = await extractContent(page, url);
+      results.push(res);
+    } catch (error) {
+      console.error(`❌ 抽出エラー（${url}）:`, error);
+    } finally {
+      if (page) {
+        try {
+          await page.close();
+        } catch (error) {
+          console.log("ページを閉じる際にエラーが発生しました：", error);
+        }
+      }
+    }
+  }
+
+  return results;
 }
