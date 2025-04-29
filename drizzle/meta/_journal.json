@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1745929067534,
+      "tag": "0000_melted_krista_starr",
+      "breakpoints": true
+    }
+  ]
+}

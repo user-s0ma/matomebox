@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "matome-box",
+  "compatibility_date": "2025-04-04",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./workers/app.ts",
+  "observability": {
+    "enabled": true
+  },
+  "ai": { "binding": "AI" },
+  "browser": { "binding": "BROWSER" },
+  "workflows": [{ "name": "matome-box-research-workflow", "binding": "RESEARCH_WORKFLOW", "class_name": "ResearchWorkflow" }]
+}
