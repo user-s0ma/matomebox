@@ -11,9 +11,6 @@ export type SearchResult = {
     id: string;
     url: string;
     alt: string;
-    width?: number;
-    height?: number;
-    position?: number;
     context?: string;
   }>;
 };
@@ -176,8 +173,6 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
       })
       .slice(0, 5)
       .map((img, index) => {
-        const position = img.getBoundingClientRect().top;
-
         let context = "";
         const parent = img.parentElement;
         if (parent) {
@@ -200,9 +195,6 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
           id: `img-${index}-${Date.now()}`,
           url: img.src,
           alt: img.alt || "",
-          width: img.width || 0,
-          height: img.height || 0,
-          position: position,
           context: context.substring(0, 400),
         };
       });
@@ -230,9 +222,7 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
   function htmlToMarkdown(html: string, images: any[]): string {
     let processedHtml = html;
 
-    const sortedImages = [...images].sort((a, b) => (a.position || 0) - (b.position || 0));
-
-    sortedImages.forEach((img) => {
+    images.forEach((img) => {
       const escapedUrl = img.url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const imgRegex = new RegExp(`<img[^>]*src=["']${escapedUrl}["'][^>]*>`, "g");
       processedHtml = processedHtml.replace(imgRegex, `[IMAGE_PLACEHOLDER_${img.id}]`);

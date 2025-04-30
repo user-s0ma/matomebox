@@ -83,11 +83,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <div key={research.id} className="border border-stone-500 rounded-xl p-4 bg-stone-800">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xl font-bold">
-                  <Link to={`/details/${research.id}`}>
+                  <Link to={`/details/${research.id}`} className="wrap-anywhere">
                     {research.query}
                   </Link>
                 </h3>
-                {getStatusBadge(research.status)}
+                <div className="shrink-0">{getStatusBadge(research.status)}</div>
               </div>
               <div className="text-sm text-stone-500 mb-3">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
               <div className="flex space-x-2">

@@ -91,19 +91,15 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
         </Link>
       </div>
       <div className="flex justify-between items-start mb-4">
-        <h2 className="text-2xl font-bold text-stone-100">{research.query}</h2>
-        {getStatusBadge(research.status)}
+        <h2 className="text-2xl font-bold wrap-anywhere">{research.query}</h2>
+        <div className="shrink-0">{getStatusBadge(research.status)}</div>
       </div>
       <div className="text-xs text-stone-400 mb-6">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
       <div className="mb-6 bg-stone-750 border border-stone-500 rounded-xl p-4">
         <h3 className="text-xl font-bold mb-2">パラメータ</h3>
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <span className="text-stone-300">深さ:</span> {research.depth}
-          </div>
-          <div>
-            <span className="text-stone-300">幅:</span> {research.breadth}
-          </div>
+          <div>深さ: {research.depth}</div>
+          <div>幅: {research.breadth}</div>
         </div>
       </div>
       <div className="mb-6">

@@ -17,7 +17,7 @@ const VALIDATION = {
 export async function action({ request, context }: Route.LoaderArgs) {
   const { query, depth, breadth } = (await request.json()) as any;
 
-  const queryFormat = (query as string).replace("\n", "");
+  const queryFormat = (query as string).replace("\n", " ");
   const depthNumber = parseInt(depth, 10);
   const breadthNumber = parseInt(breadth, 10);
 

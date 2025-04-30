@@ -7,7 +7,7 @@ type ImageData = {
   analysis?: string;
 };
 
-export class EnhancedImageProcessor {
+export class ImageProcessor {
   async processArticleWithImages(articleText: string, images: ImageData[]): Promise<string> {
     const analyzedImages = await this.analyzeAllImages(images);
 
@@ -24,28 +24,71 @@ export class EnhancedImageProcessor {
       }
 
       try {
-        const analysis = await this.analyzeImage(image.url);
-        analyzedImages.push({
-          ...image,
-          analysis,
-        });
+        const res = await fetch(image.url);
+
+        if (!res.ok) {
+          continue;
+        }
+
+        const blob = await res.arrayBuffer();
+
+        if (typeof window !== "undefined" && typeof Image !== "undefined") {
+          const img = new Image();
+          const blobUrl = URL.createObjectURL(new Blob([blob]));
+
+          try {
+            const dimensions = await new Promise<{ width: number; height: number } | null>((resolve) => {
+              img.onload = () => {
+                const width = img.naturalWidth;
+                const height = img.naturalHeight;
+                resolve({ width, height });
+              };
+              img.onerror = () => {
+                resolve(null);
+              };
+              img.src = blobUrl;
+
+              setTimeout(() => {
+                if (!img.complete) {
+                  resolve(null);
+                }
+              }, 5000);
+            });
+
+            URL.revokeObjectURL(blobUrl);
+
+            if (!dimensions || !(dimensions.width >= 200 || dimensions.height >= 200)) {
+              continue;
+            }
+
+            const analysis = await this.analyzeImage(blob, res.headers.get("content-type"));
+
+            analyzedImages.push({
+              ...image,
+              analysis
+            });
+          } catch (error) {
+            console.error(`画像サイズ検出エラー: ${image.url}`, error);
+            continue;
+          }
+        } else {
+          const analysis = await this.analyzeImage(blob, res.headers.get("content-type"));
+
+          analyzedImages.push({
+            ...image,
+            analysis,
+          });
+        }
       } catch (error) {
-        console.error(`画像分析エラー: ${image.url}`, error);
-        analyzedImages.push({
-          ...image,
-          analysis: "画像の分析に失敗しました",
-        });
+        console.error(`画像処理エラー: ${image.url}`, error);
       }
     }
 
     return analyzedImages;
   }
 
-  private async analyzeImage(imageUrl: string): Promise<string> {
+  private async analyzeImage(blob: ArrayBuffer, contentType?: string | null): Promise<string> {
     try {
-      const res = await fetch(imageUrl);
-      const blob = await res.arrayBuffer();
-
       const prompt = `
         あなはプロの視覚分析専門家です。この画像を詳細に分析してください。
 
@@ -65,7 +108,7 @@ export class EnhancedImageProcessor {
         {
           inlineData: {
             data: Buffer.from(blob).toString("base64"),
-            mimeType: res.headers.get("content-type") || "application/octet-stream",
+            mimeType: contentType || "application/octet-stream",
           },
         },
       ]);
@@ -73,11 +116,9 @@ export class EnhancedImageProcessor {
       return response.text();
     } catch (error) {
       console.error(`画像分析に失敗しました: ${error}`);
-      return "画像の分析に失敗しました";
+      throw error;
     }
   }
-
-  // app/lib/enhancedImageProcessor.ts の createIntegratedArticle メソッドを更新
 
   private async createIntegratedArticle(articleText: string, images: ImageData[]): Promise<string> {
     const prompt = `

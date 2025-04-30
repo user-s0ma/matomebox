@@ -5,7 +5,7 @@ import { getDrizzleClient } from "@/lib/db";
 import { model } from "@/lib/gemini";
 import { getBrowser, webSearch } from "@/lib/webSearch";
 import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT, DEEP_FINAL_REPORT_PROMPT } from "@/lib/prompts";
-import { EnhancedImageProcessor } from "@/lib/enhancedImageProcessor";
+import { ImageProcessor } from "@/lib/imageProcessor";
 
 interface ResearchParams {
   id: string;
@@ -245,7 +245,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
           return { enhancedMarkdown: item.markdown || "", analyzedImages: [] };
         }
 
-        const imageProcessor = new EnhancedImageProcessor();
+        const imageProcessor = new ImageProcessor();
         const analyzedImages = await imageProcessor.analyzeAllImages(item.images);
 
         let enhancedMarkdown = item.markdown;
@@ -341,11 +341,11 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     try {
       const articleDraft = await this.generateArticleDraft(prompt, learnings);
 
-      const imageProcessor = new EnhancedImageProcessor();
+      const imageProcessor = new ImageProcessor();
       const finalArticle = await imageProcessor.processArticleWithImages(articleDraft, images);
 
       const urlsSection = `\n\n## 参考サイト\n\n${visitedUrls.map((url) => `- ${url}`).join("\n")}`;
-      return finalArticle + urlsSection;
+      return finalArticle// + urlsSection;
     } catch (error) {
       console.error("最終レポート生成エラー:", error);
 
