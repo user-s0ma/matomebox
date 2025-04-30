@@ -213,36 +213,6 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     }
   }
 
-  async integrateImageAnalysis(markdown: string, images: any[]): Promise<{ enhancedMarkdown: string; analyzedImages: any[] }> {
-    const analyzedImages = [...images];
-    let enhancedMarkdown = markdown;
-
-    const sortedImages = [...analyzedImages].sort((a, b) => (a.position || 0) - (b.position || 0));
-
-    for (const img of sortedImages) {
-      try {
-        console.log(`🖼️ 画像分析開始: ${img.url}`);
-        const analysis = await this.analyzeImage(img.url);
-        img.analysis = analysis;
-
-        let contextAnalysis = analysis;
-        if (img.context) {
-          contextAnalysis += `\n画像の周辺テキスト: ${img.context}`;
-        }
-
-        const placeholder = `[IMAGE_PLACEHOLDER_${img.id}]`;
-        const replacement = `\n\n[IMAGE_CONTEXT: ${contextAnalysis}]\n\n[IMAGE_TAG_${img.id}]\n\n`;
-
-        enhancedMarkdown = enhancedMarkdown.replace(placeholder, replacement);
-      } catch (error) {
-        console.error(`画像分析エラー: ${img.url}`, error);
-        enhancedMarkdown = enhancedMarkdown.replace(`[IMAGE_PLACEHOLDER_${img.id}]`, "");
-      }
-    }
-
-    return { enhancedMarkdown, analyzedImages };
-  }
-
   async generateSerpQueries(query: string, numQueries: number = 5, learnings?: string[]) {
     console.log(`📄 検索クエリ生成開始`);
 
@@ -275,12 +245,25 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
           return { enhancedMarkdown: item.markdown || "", analyzedImages: [] };
         }
 
-        return await this.integrateImageAnalysis(item.markdown, item.images);
+        const imageProcessor = new EnhancedImageProcessor();
+        const analyzedImages = await imageProcessor.analyzeAllImages(item.images);
+
+        let enhancedMarkdown = item.markdown;
+
+        for (const img of analyzedImages) {
+          if (img.analysis) {
+            const placeholder = `[IMAGE_PLACEHOLDER_${img.id}]`;
+            const replacement = `\n\n[IMAGE_CONTEXT: ${img.analysis}]\n\n[IMAGE_TAG_${img.id}]\n\n`;
+
+            enhancedMarkdown = enhancedMarkdown.replace(placeholder, replacement);
+          }
+        }
+
+        return { enhancedMarkdown, analyzedImages };
       })
     );
 
     const processedImages = processedResults.flatMap((result) => result.analyzedImages).filter((img) => img.analysis);
-
     const contentsWithImages = processedResults.map((result) => result.enhancedMarkdown);
 
     if (contentsWithImages.length === 0) {
@@ -326,85 +309,56 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     return { learnings, followUpQuestions, processedImages };
   }
 
-  async analyzeImage(imageUrl: string) {
-    try {
-      console.log(`🖼️ 画像分析開始: ${imageUrl}`);
-
-      const res = await fetch(imageUrl);
-      const blob = await res.arrayBuffer();
-
-      const { response } = await model.generateContent([
-        "この画像には何が表示されていますか？詳しく説明してください。",
-        {
-          inlineData: {
-            data: Buffer.from(blob).toString("base64"),
-            mimeType: res.headers.get("content-type") || "application/octet-stream",
-          },
-        },
-      ]);
-      return response.text();
-    } catch (error) {
-      console.error(`画像分析に失敗しました: ${error}`);
-      return "画像の分析に失敗しました";
-    }
-  }
-
   async generateArticleDraft(prompt: string, learnings: string[]): Promise<string> {
     console.log(`📝 記事ドラフト生成開始: ${prompt}`);
 
-    const { response } = await model.generateContent([
-      `あなたはプロのニュース記者です。収集された情報を統合し、画像との関連性を考慮したニュース記事の下書きを作成してください。
+    const draftPrompt = `
+      あなたはプロのニュース記者です。以下の情報に基づいて「${prompt}」に関する記事の下書きを作成してください。
       
-      以下の点に特に注意してください：
-      1. 視覚的に補完できる情報（人物の外見、場所の様子、物の形状など）は詳細に記述してください
-      2. 記事の流れに沿って、視覚情報と文章情報が相互に補完し合うように構成してください
-      3. 各段落は一つの明確なトピックに焦点を当て、画像配置がしやすいように構成してください
-      4. 数値データや統計情報は正確に記載し、視覚化できる要素を含めてください
+      【指示】
+      1. 「である・だ」調の報道文体を使用してください
+      2. 事実と具体的な数字を重視してください
+      3. 段落ごとに明確なトピックを設定してください
+      4. 各段落は独立して理解できるようにしてください
       
-      以下の情報を元に、「${prompt}」に関するニュース記事の下書きを作成してください：
-      ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}`,
-    ]);
+      【収集情報】
+      ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}
+      `;
 
-    const draft = response.text();
-    console.log(`📝 記事ドラフト生成完了: ${draft.substring(0, 100)}${draft.length > 100 ? "..." : ""}`);
+    try {
+      const { response } = await model.generateContent([draftPrompt]);
+      const draft = response.text();
 
-    return draft;
+      console.log(`📝 記事ドラフト生成完了: ${draft.substring(0, 100)}${draft.length > 100 ? "..." : ""}`);
+      return draft;
+    } catch (error) {
+      console.error("記事ドラフト生成エラー:", error);
+      return learnings.join("\n\n");
+    }
   }
 
   async writeFinalReport(prompt: string, learnings: string[], visitedUrls: string[], images: any[] = []) {
-    const articleDraft = await this.generateArticleDraft(prompt, learnings);
+    try {
+      const articleDraft = await this.generateArticleDraft(prompt, learnings);
 
-    const imageProcessor = new EnhancedImageProcessor();
-    const articleWithImages = await imageProcessor.integrateImagesWithArticle(articleDraft, images);
+      const imageProcessor = new EnhancedImageProcessor();
+      const finalArticle = await imageProcessor.processArticleWithImages(articleDraft, images);
 
-    const { response } = await model.generateContent([
-      DEEP_FINAL_REPORT_PROMPT() +
-        `プロンプト「${prompt}」を使用して、以下の記事原稿と画像配置に基づいて最終的なニュース記事を作成してください。
-      
-      記事には既に画像配置マーカー[IMAGE_TAG_...]が含まれています。これらのマーカーの位置を尊重して記事を生成してください。
-      各マーカーはその場所に関連性の高い画像が配置されるべきことを示しています。
-      
-      ${articleWithImages}
-      
-      利用可能な画像の情報：
-      ${images.map((img) => `[IMAGE_TAG_${img.id}]: ${img.analysis || "関連画像"}`).join("\n\n")}
-      
-      特に以下の点に注意してください：
-      1. 画像の内容と周囲のテキストの関連性を強化する追加の文脈や説明を含めてください
-      2. 画像と記事の自然な流れを保ち、読者の理解を深める配置を維持してください
-      3. 画像キャプションを追加して、画像の内容と記事の関連性を明確にしてください
-      4. 画像の間隔が近すぎる場合は、必要に応じて一部の画像を省略しても構いません
-      `,
-    ]);
+      const urlsSection = `\n\n## 参考サイト\n\n${visitedUrls.map((url) => `- ${url}`).join("\n")}`;
+      return finalArticle + urlsSection;
+    } catch (error) {
+      console.error("最終レポート生成エラー:", error);
 
-    let report = response.text();
+      const { response } = await model.generateContent([
+        DEEP_FINAL_REPORT_PROMPT() +
+          `プロンプト「${prompt}」を使用して、収集した情報に基づいて記事を作成してください。\n\n` +
+          `${learnings.map((item, index) => `${index + 1}. ${item}`).join("\n")}`,
+      ]);
 
-    images.forEach((img) => {
-      const imgTag = `\n\n![${img.alt || "関連画像"}](${img.url})\n*${img.analysis ? img.analysis.split("\n")[0] : "関連画像"}*\n\n`;
-      report = report.replace(`[IMAGE_TAG_${img.id}]`, imgTag);
-    });
+      const basicReport = response.text();
+      const urlsSection = `\n\n## 参考サイト\n\n${visitedUrls.map((url) => `- ${url}`).join("\n")}`;
 
-    const urlsSection = `\n\n## 参考サイト\n\n${visitedUrls.map((url) => `- ${url}`).join("\n")}`;
-    return report + urlsSection;
+      return basicReport + urlsSection;
+    }
   }
 }

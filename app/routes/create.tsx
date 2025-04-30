@@ -22,10 +22,12 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
   const { results } = loaderData;
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -44,59 +46,73 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
       });
 
       if (!response.ok) {
-        throw new Error("リサーチの作成に失敗しました");
+        const data: any = await response.json();
+        let errorMessage = "リサーチの作成に失敗しました";
+        if (data && data.error) {
+          errorMessage = data.error;
+        } else if (response.status === 429) {
+          errorMessage = "レート制限を超えました。しばらく待ってから再試行してください。";
+        }
+        throw new Error(errorMessage);
       }
 
       navigate("/");
     } catch (error) {
       console.error("Error creating research:", error);
+      setError(error instanceof Error ? error.message : "リサーチの作成に失敗しました");
       setIsSubmitting(false);
     }
   }
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">新しいニュース記事の作成</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label htmlFor="query" className="block text-sm font-medium mb-1">
-            リサーチクエリ
-          </label>
+      <h2 className="text-2xl font-bold mb-6">新しい記事の作成</h2>
+      <form onSubmit={handleSubmit} className="">
+        <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">
           <textarea
             id="query"
             name="query"
             rows={4}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 pb-12 resize-none"
             placeholder="リサーチしたいトピックや単語を入力してください"
             defaultValue={results?.research.query || ""}
             required
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label htmlFor="depth" className="block text-sm font-medium mb-1">
-              深さ
-            </label>
-            <select id="depth" name="depth" className="w-full p-2 border rounded" defaultValue={results?.research.depth || "2"}>
-              <option value="1">浅い (速い)</option>
-              <option value="2">中程度</option>
-              <option value="3">深い (遅い)</option>
-            </select>
+          <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-center rounded-b-xl">
+            <div className="flex gap-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs">深さ:</span>
+                <select
+                  id="depth"
+                  name="depth"
+                  className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
+                  defaultValue={results?.research.depth || "2"}
+                >
+                  <option value="1">浅い (速い)</option>
+                  <option value="2">中程度</option>
+                  <option value="3">深い (遅い)</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs">幅:</span>
+                <select
+                  id="breadth"
+                  name="breadth"
+                  className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
+                  defaultValue={results?.research.breadth || "3"}
+                >
+                  <option value="1">狭い (1-2 トピック)</option>
+                  <option value="3">中程度 (3-5 トピック)</option>
+                  <option value="5">広い (多くのトピック)</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" className="text-xs bg-amber-800 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
+              {isSubmitting ? "処理中..." : "記事を作成"}
+            </button>
           </div>
-          <div>
-            <label htmlFor="breadth" className="block text-sm font-medium mb-1">
-              幅
-            </label>
-            <select id="breadth" name="breadth" className="w-full p-2 border rounded" defaultValue={results?.research.breadth || "3"}>
-              <option value="1">狭い (1-2 トピック)</option>
-              <option value="3">中程度 (3-5 トピック)</option>
-              <option value="5">広い (多くのトピック)</option>
-            </select>
-          </div>
         </div>
-        <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700" disabled={isSubmitting}>
-          {isSubmitting ? "処理中..." : "ニュース記事を作成"}
-        </button>
+        {error && <div className="mt-4 p-3 bg-red-500 bg-opacity-25 border border-red-700 rounded-xl text-red-100 text-sm">{error}</div>}
       </form>
     </div>
   );

@@ -46,13 +46,13 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
   function getStatusBadge(status: number) {
     switch (status) {
       case 1:
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">進行中</span>;
+        return <span className="px-2 py-1 bg-amber-900 bg-opacity-30 text-amber-300 border border-amber-700 text-xs rounded">進行中</span>;
       case 2:
-        return <span className="px-2 py-1 bg-green-100 text-green-800 rounded">完了</span>;
+        return <span className="px-2 py-1 bg-emerald-900 bg-opacity-30 text-emerald-300 border border-emerald-700 text-xs rounded">完了</span>;
       case 3:
-        return <span className="px-2 py-1 bg-red-100 text-red-800 rounded">エラー</span>;
+        return <span className="px-2 py-1 bg-red-900 bg-opacity-30 text-red-300 border border-red-700 text-xs rounded">エラー</span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">不明</span>;
+        return <span className="px-2 py-1 bg-stone-800 bg-opacity-30 text-stone-300 border border-stone-600 text-xs rounded">不明</span>;
     }
   }
 
@@ -81,40 +81,53 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="max-w-4xl p-2 mx-auto">
       <div className="mb-6">
-        <Link to="/" className="text-blue-600 hover:underline">
-          ← リスト戻る
+        <Link to="/" className="text-amber-800 flex items-center text-xs">
+          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          リストに戻る
         </Link>
       </div>
       <div className="flex justify-between items-start mb-4">
-        <h2 className="text-2xl font-bold">{research.query}</h2>
+        <h2 className="text-2xl font-bold text-stone-100">{research.query}</h2>
         {getStatusBadge(research.status)}
       </div>
-      <div className="text-sm text-gray-500 mb-6">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">パラメータ</h3>
+      <div className="text-xs text-stone-400 mb-6">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+      <div className="mb-6 bg-stone-750 border border-stone-500 rounded-xl p-4">
+        <h3 className="text-xl font-bold mb-2">パラメータ</h3>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <span className="font-medium">深さ:</span> {research.depth}
+            <span className="text-stone-300">深さ:</span> {research.depth}
           </div>
           <div>
-            <span className="font-medium">幅:</span> {research.breadth}
+            <span className="text-stone-300">幅:</span> {research.breadth}
           </div>
         </div>
       </div>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">リサーチレポート</h3>
+        <h3 className="text-xl font-bold mb-2">リサーチレポート</h3>
         {research.status === 1 ? (
-          <div className="p-4 bg-yellow-50 rounded">リサーチは現在進行中です...</div>
+          <div className="p-4 bg-amber-800 opacity-50 rounded-xl flex items-center">
+            <svg className="animate-spin h-5 w-5 mr-3 text-stone-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            リサーチは現在進行中です...
+          </div>
         ) : (
-          <div className="prose max-w-none">
+          <div className="prose prose-stone prose-invert max-w-none bg-stone-750 border border-stone-500 rounded-xl p-4">
             <MarkdownRenderer markdown={research.content} images={research.images} />
           </div>
         )}
       </div>
-      <div className="flex space-x-4 mt-8">
-        <button onClick={() => handleDelete(research.id)} className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
+      <div className="flex space-x-2">
+        <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs">
           削除
         </button>
       </div>

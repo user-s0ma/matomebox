@@ -1,5 +1,4 @@
 import { model } from "@/lib/gemini";
-import { IMAGE_ANALYSIS_PROMPT, OPTIMIZED_IMAGE_PLACEMENT_PROMPT } from "@/lib/prompts";
 
 type ImageData = {
   id: string;
@@ -9,15 +8,13 @@ type ImageData = {
 };
 
 export class EnhancedImageProcessor {
-  async integrateImagesWithArticle(articleText: string, images: ImageData[]): Promise<string> {
+  async processArticleWithImages(articleText: string, images: ImageData[]): Promise<string> {
     const analyzedImages = await this.analyzeAllImages(images);
 
-    const optimizedArticle = await this.optimizeImagePlacement(articleText, analyzedImages);
-
-    return optimizedArticle;
+    return await this.createIntegratedArticle(articleText, analyzedImages);
   }
 
-  private async analyzeAllImages(images: ImageData[]): Promise<ImageData[]> {
+  public async analyzeAllImages(images: ImageData[]): Promise<ImageData[]> {
     const analyzedImages: ImageData[] = [];
 
     for (const image of images) {
@@ -49,8 +46,22 @@ export class EnhancedImageProcessor {
       const res = await fetch(imageUrl);
       const blob = await res.arrayBuffer();
 
+      const prompt = `
+        あなはプロの視覚分析専門家です。この画像を詳細に分析してください。
+
+        分析の際には、以下の点に注意してください：
+        1. 誰が（人物）、何が（物・事象）、どこで（場所）、どのように（状況）写っているか
+        2. 「この画像には〜」という表現は使わず、直接内容を説明する
+        3. HTMLタグは一切使用しない
+
+        分析結果は3段落で構成してください：
+        - 第1段落: 主要な被写体と状況の概要
+        - 第2段落: 細部の詳細
+        - 第3段落: 文脈における意味
+        `;
+
       const { response } = await model.generateContent([
-        IMAGE_ANALYSIS_PROMPT(),
+        prompt,
         {
           inlineData: {
             data: Buffer.from(blob).toString("base64"),
@@ -66,146 +77,85 @@ export class EnhancedImageProcessor {
     }
   }
 
-  private async optimizeImagePlacement(articleText: string, images: ImageData[]): Promise<string> {
-    if (articleText.length > 10000 && images.length > 1) {
-      return this.processLongArticle(articleText, images);
-    }
+  // app/lib/enhancedImageProcessor.ts の createIntegratedArticle メソッドを更新
 
-    const prompt =
-      OPTIMIZED_IMAGE_PLACEMENT_PROMPT() +
+  private async createIntegratedArticle(articleText: string, images: ImageData[]): Promise<string> {
+    const prompt = `
+      あなたはプロのスポーツニュース編集者です。テキスト記事と分析済みの画像があります。
+      これらを最適に統合し、簡潔なマークダウン形式で記事を作成してください。
+
+      【記事本文】
+      ${articleText}
+
+      【利用可能な画像】
+      ${images
+        .map(
+          (img, index) => `[画像${index + 1}] ID: ${img.id}
+      説明: ${img.analysis || "説明なし"}
+      URL: ${img.url}
       `
-        【記事本文】
-        ${articleText}
+        )
+        .join("\n\n")}
 
-        【利用可能な画像】
-        ${images
-          .map(
-            (img, index) => `[画像${index + 1}] ID: ${img.id}
-              説明: ${img.analysis || "説明なし"}
-              `
-                )
-                .join("\n\n")}
+      【出力形式の制限】
+      以下のマークダウン要素のみを使用してください：
+      1. タイトル: # タイトル
+      2. 見出し: ## 見出し
+      3. サブ見出し: ### サブ見出し
+      4. 本文: 通常のテキスト（シンプルに記述）
+      5. 画像: ![代替テキスト](画像URL)
+      6. 画像キャプション: *キャプション* (画像の直後に配置)
+      7. 太字: **太字テキスト**
+      8. リンク: [テキスト](URL)
 
-        【指示】
-        1. 記事の内容と各画像の内容を分析し、最も関連性の高い位置に画像を配置してください
-        2. 各画像は記事内で最大1回だけ使用してください
-        3. すべての画像を使用する必要はありません。記事と明確な関連がない画像は使用しないでください
-        4. 画像は必ず段落間（段落の前後）に配置し、段落の途中には挿入しないでください
-        5. 記事の最初と最後にも画像を配置できます
-        6. 画像を追加する際は、元の記事テキストをそのまま維持し、画像タグ [IMAGE_TAG_画像ID] のみを挿入してください
+      【以下の要素は使用禁止】
+      - リスト（箇条書きや番号付きリスト）
+      - コードブロック
+      - 水平線
+      - 斜体（画像キャプションを除く）
+      - インラインコード
+      - HTMLタグ（figcaptionなど）
 
-        【出力形式】
-        画像タグ [IMAGE_TAG_画像ID] を適切な位置に挿入した完全な記事テキストを返してください。
-        それ以外の修正や追加コメントは含めないでください。
+      元の記事の内容を尊重しながら、読みやすく整理された形式で再構成してください。段落は簡潔にまとめ、重要な情報に焦点を当ててください。
       `;
 
     try {
       const { response } = await model.generateContent([prompt]);
-      let optimizedArticle = response.text();
-
-      optimizedArticle = optimizedArticle
-        .replace(/```markdown/g, "")
-        .replace(/```/g, "")
-        .replace(/^記事：/gm, "")
-        .trim();
-
-      return optimizedArticle;
+      return response.text();
     } catch (error) {
-      console.error("画像配置の最適化に失敗しました:", error);
+      console.error("記事と画像の統合に失敗しました:", error);
 
-      let articleWithImages = articleText;
+      let result = "# " + articleText.split("\n")[0];
 
-      images.forEach((image) => {
-        articleWithImages += `\n\n[IMAGE_TAG_${image.id}]\n\n`;
-      });
+      const paragraphs = articleText.split("\n\n");
 
-      return articleWithImages;
-    }
-  }
+      if (paragraphs.length > 1) {
+        result += "\n\n## " + paragraphs[1];
+      }
 
-  private async processLongArticle(articleText: string, images: ImageData[]): Promise<string> {
-    const paragraphs = articleText.split(/\n\n+/);
+      let imageCount = 0;
+      for (let i = 2; i < paragraphs.length; i++) {
+        if (i % 3 === 0 && imageCount < images.length) {
+          const image = images[imageCount];
+          const caption = image.alt || "関連画像";
+          result += `\n\n![${caption}](${image.url})\n*${caption}*`;
+          imageCount++;
+        }
 
-    const sectionSize = Math.ceil(paragraphs.length / (images.length + 1));
-    const sections = [];
-
-    for (let i = 0; i < paragraphs.length; i += sectionSize) {
-      sections.push(paragraphs.slice(i, i + sectionSize).join("\n\n"));
-    }
-
-    const sectionImageAssignments = await this.assignImagesToSections(sections, images);
-
-    let result = "";
-
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      const assignedImage = sectionImageAssignments[i];
-
-      if (assignedImage) {
-        if (Math.random() > 0.5) {
-          result += `\n\n[IMAGE_TAG_${assignedImage.id}]\n\n${section}\n\n`;
+        if (i % 4 === 0) {
+          result += "\n\n### " + paragraphs[i];
         } else {
-          result += `${section}\n\n[IMAGE_TAG_${assignedImage.id}]\n\n`;
-        }
-      } else {
-        result += `${section}\n\n`;
-      }
-    }
-
-    return result;
-  }
-
-  private async assignImagesToSections(sections: string[], images: ImageData[]): Promise<(ImageData | null)[]> {
-    const assignments: (ImageData | null)[] = Array(sections.length).fill(null);
-
-    const availableImages = [...images];
-
-    for (let i = 0; i < sections.length && availableImages.length > 0; i++) {
-      const section = sections[i];
-
-      const bestImageIndex = await this.findBestImageForSection(section, availableImages);
-
-      if (bestImageIndex !== -1) {
-        assignments[i] = availableImages[bestImageIndex];
-        availableImages.splice(bestImageIndex, 1);
-      }
-    }
-
-    return assignments;
-  }
-
-  private async findBestImageForSection(sectionText: string, availableImages: ImageData[]): Promise<number> {
-    if (availableImages.length === 0) return -1;
-    if (availableImages.length === 1) return 0;
-
-    const prompt = `
-      あなたはコンテンツキュレーターです。以下のテキストセクションに最も関連性の高い画像を選んでください。
-
-      【テキストセクション】
-      ${sectionText}
-
-      【利用可能な画像】
-      ${availableImages.map((img, index) => `[${index}]: ${img.analysis || "説明なし"}`).join("\n\n")}
-
-      最も関連性の高い画像の番号（0から始まる配列インデックス）のみを返してください。例: 2
-    `;
-
-    try {
-      const { response } = await model.generateContent([prompt]);
-      const result = response.text().trim();
-
-      const match = result.match(/\d+/);
-      if (match) {
-        const index = parseInt(match[0], 10);
-        if (index >= 0 && index < availableImages.length) {
-          return index;
+          result += "\n\n" + paragraphs[i];
         }
       }
 
-      return Math.floor(Math.random() * availableImages.length);
-    } catch (error) {
-      console.error("最適な画像の選択に失敗しました:", error);
-      return Math.floor(Math.random() * availableImages.length);
+      for (let i = imageCount; i < images.length; i++) {
+        const image = images[i];
+        const caption = image.alt || "関連画像";
+        result += `\n\n![${caption}](${image.url})\n*${caption}*`;
+      }
+
+      return result;
     }
   }
 }

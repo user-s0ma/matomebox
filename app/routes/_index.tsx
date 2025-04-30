@@ -23,13 +23,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   function getStatusBadge(status: number) {
     switch (status) {
       case 1:
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">進行中</span>;
+        return <span className="px-2 py-1 bg-amber-900 bg-opacity-30 text-amber-300 border border-amber-700 text-xs rounded-xl">進行中</span>;
       case 2:
-        return <span className="px-2 py-1 bg-green-100 text-green-800 rounded">完了</span>;
+        return <span className="px-2 py-1 bg-emerald-900 bg-opacity-30 text-emerald-300 border border-emerald-700 text-xs rounded-xl">完了</span>;
       case 3:
-        return <span className="px-2 py-1 bg-red-100 text-red-800 rounded">エラー</span>;
+        return <span className="px-2 py-1 bg-red-900 bg-opacity-30 text-red-300 border border-red-700 text-xs rounded-xl">エラー</span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">不明</span>;
+        return <span className="px-2 py-1 bg-stone-800 bg-opacity-30 text-stone-300 border border-stone-600 text-xs rounded-xl">不明</span>;
     }
   }
 
@@ -51,7 +51,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         throw new Error("リサーチの削除に失敗しました");
       }
 
-      navigate(0)
+      navigate(0);
     } catch (error) {
       console.error("Error deleting research:", error);
     }
@@ -62,7 +62,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       <div className="p-8 text-center">
         <h2 className="text-2xl font-bold mb-6">リサーチ一覧</h2>
         <p className="mb-4">リサーチがまだありません。</p>
-        <Link to="/create" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+        <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
           新しいリサーチを作成
         </Link>
       </div>
@@ -73,28 +73,25 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">リサーチ一覧</h2>
-        <Link to="/create" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+        <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
           新しいリサーチを作成
         </Link>
       </div>
       <div className="grid gap-4">
         {researches.map((research) => {
           return (
-            <div key={research.id} className="border rounded p-4">
+            <div key={research.id} className="border border-stone-500 rounded-xl p-4 bg-stone-800">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold">
-                  <Link to={`/details/${research.id}`} className="hover:underline">
+                <h3 className="text-xl font-bold">
+                  <Link to={`/details/${research.id}`}>
                     {research.query}
                   </Link>
                 </h3>
                 {getStatusBadge(research.status)}
               </div>
-              <div className="text-sm text-gray-500 mb-3">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+              <div className="text-sm text-stone-500 mb-3">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
               <div className="flex space-x-2">
-                <Link to={`/details/${research.id}`} className="text-blue-600 hover:underline">
-                  詳細を見る
-                </Link>
-                <button onClick={() => handleDelete(research.id)} className="text-red-600 hover:underline">
+                <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs">
                   削除
                 </button>
               </div>

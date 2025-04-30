@@ -3,9 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "react-router dev",
     "build": "react-router build",
-    "dev:remote": "npm run build && wrangler dev --remote",
+    "dev": "npm run build && wrangler dev --remote",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "npm run cf-typegen && react-router typegen && tsc -b",
