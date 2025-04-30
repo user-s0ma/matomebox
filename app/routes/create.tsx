@@ -66,7 +66,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="max-w-2xl p-2 mx-auto">
-      <h2 className="text-2xl font-bold mb-6">新しい記事の作成</h2>
+      <h2 className="text-2xl font-bold mb-6">新しいリサーチの作成</h2>
       <form onSubmit={handleSubmit} className="">
         <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">
           <textarea
@@ -89,22 +89,22 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
                   className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
                   defaultValue={results?.research.depth.toString() || "2"}
                 >
-                  <option value="1">浅い (速い)</option>
+                  <option value="1">浅い (非推奨)</option>
                   <option value="2">中程度</option>
                   <option value="3">深い (遅い)</option>
                 </select>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs">幅:</span>
+                <span className="text-xs">トピック</span>
                 <select
                   id="breadth"
                   name="breadth"
                   className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
                   defaultValue={results?.research.breadth.toString() || "3"}
                 >
-                  <option value="1">狭い (1-2 トピック)</option>
-                  <option value="3">中程度 (3-5 トピック)</option>
-                  <option value="5">広い (多くのトピック)</option>
+                  <option value="1">少しの</option>
+                  <option value="3">中程度</option>
+                  <option value="5">多くの</option>
                 </select>
               </div>
             </div>

@@ -60,10 +60,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   if (researches.length === 0) {
     return (
       <div className="p-2 text-center">
-        <h2 className="text-2xl font-bold mb-6">記事一覧</h2>
-        <p className="mb-4">記事がまだありません。</p>
+        <h2 className="text-2xl font-bold mb-6">リサーチ一覧</h2>
+        <p className="mb-4">リサーチがまだありません。</p>
         <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
-          新しい記事を作成
+          新しいリサーチを作成
         </Link>
       </div>
     );
@@ -72,9 +72,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div className="max-w-2xl p-2 mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">記事一覧</h2>
+        <h2 className="text-2xl font-bold">リサーチ一覧</h2>
         <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
-          新しい記事を作成
+          新しいリサーチを作成
         </Link>
       </div>
       <div className="grid gap-4">
@@ -89,9 +89,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 </h3>
                 <div className="shrink-0">{getStatusBadge(research.status)}</div>
               </div>
-              <div className="flex text-xs m-2">
-                <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
-                <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+              <div className="flex text-xs">
+                <div className="m-2">カテゴリー: {research.category || "不明"}</div>
+                <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
               </div>
               <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs m-2">
                 削除
