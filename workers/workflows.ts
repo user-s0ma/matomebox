@@ -32,7 +32,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         await db.update(researches).set({ status: 1 }).where(eq(researches.id, id));
 
         const serpQueries = await step.do(
-          "generate-search-queries",
+          "[generate-search-queries]",
           {
             retries: {
               limit: 1,
@@ -54,7 +54,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
             const browserInstance = await browser.getActiveBrowser();
 
             const result = await step.do(
-              `search-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
+              `[search]-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
               {
                 retries: {
                   limit: 1,
@@ -69,7 +69,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
             );
 
             const { learnings, followUpQuestions, processedImages } = await step.do(
-              `process-results-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
+              `[process-results]-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
               {
                 retries: {
                   limit: 1,
@@ -105,7 +105,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
             if (parseInt(depth) > 1) {
               const nextQueries = await step.do(
-                `generate-followup-queries-${serpQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                `[generate-followup-queries]-${serpQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
                 {
                   retries: {
                     limit: 1,
@@ -121,7 +121,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
               for (const nextQuery of nextQueries) {
                 const nextResult = await step.do(
-                  `deep-search-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                  `[deep-search]-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
                   {
                     retries: {
                       limit: 1,
@@ -136,7 +136,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
                 );
 
                 const nextProcessResult = await step.do(
-                  `deep-process-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                  `[deep-process]-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
                   {
                     retries: {
                       limit: 1,
@@ -168,7 +168,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         }
 
         const report = await step.do(
-          "write-final-report",
+          "[write-final-report]",
           {
             retries: {
               limit: 1,
@@ -358,7 +358,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
       const basicReport = response.text();
       const urlsSection = `\n\n## 参考サイト\n\n${visitedUrls.map((url) => `- ${url}`).join("\n")}`;
 
-      return basicReport + urlsSection;
+      return basicReport// + urlsSection;
     }
   }
 }

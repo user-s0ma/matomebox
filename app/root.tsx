@@ -15,12 +15,19 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+const DEFAULT_TITLE = "DeepResearch - AIを活用した自動リサーチツール";
+const DEFAULT_DESCRIPTION = "トピックを入力するだけで、AIが自動的に情報を収集・分析し、高品質な記事を生成します。";
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" className="h-full">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{DEFAULT_TITLE}</title>
+        <meta name="description" content={DEFAULT_DESCRIPTION} />
+        <meta property="og:title" content={DEFAULT_TITLE} />
+        <meta property="og:description" content={DEFAULT_DESCRIPTION} />
         <Meta />
         <Links />
       </head>

@@ -1,10 +1,10 @@
 import type { Route } from "./+types/api.research.create";
 import { getDrizzleClient } from "@/lib/db";
 import { researches } from "@/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { and, gt } from "drizzle-orm";
 
 const RATE_LIMIT = {
-  MAX_REQUESTS: 10, // 10
+  MAX_REQUESTS: 5, // 5
   WINDOW_MS: 30 * 60 * 1000, // 30m
 };
 

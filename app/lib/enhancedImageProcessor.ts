@@ -81,7 +81,7 @@ export class EnhancedImageProcessor {
 
   private async createIntegratedArticle(articleText: string, images: ImageData[]): Promise<string> {
     const prompt = `
-      あなたはプロのスポーツニュース編集者です。テキスト記事と分析済みの画像があります。
+      あなたはプロのニュース編集者です。テキスト記事と分析済みの画像があります。
       これらを最適に統合し、簡潔なマークダウン形式で記事を作成してください。
 
       【記事本文】

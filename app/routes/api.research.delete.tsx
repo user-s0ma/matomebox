@@ -6,6 +6,19 @@ import { eq } from "drizzle-orm";
 export async function action({ request }: Route.LoaderArgs) {
   const { id } = (await request.json()) as any;
 
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: "この操作を実行する権限がありません。",
+    }),
+    {
+      status: 403,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
   if (!id) {
     return new Response(JSON.stringify({ error: "リサーチIDが提供されていません" }), {
       status: 400,

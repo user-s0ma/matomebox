@@ -65,7 +65,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-2 max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">新しい記事の作成</h2>
       <form onSubmit={handleSubmit} className="">
         <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">
@@ -108,7 +108,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
             <button type="submit" className="text-xs bg-amber-800 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
-              {isSubmitting ? "処理中..." : "記事を作成"}
+              {isSubmitting ? "処理..." : "作成"}
             </button>
           </div>
         </div>
