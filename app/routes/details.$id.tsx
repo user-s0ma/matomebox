@@ -22,7 +22,16 @@ export async function loader({ params }: { params: { id: string } }) {
   let images = [];
   try {
     if (research.images) {
-      images = JSON.parse(research.images as unknown as string);
+      images = JSON.parse(research.images);
+    }
+  } catch (e) {
+    console.error("画像データのパースに失敗しました:", e);
+  }
+
+  let urls = [];
+  try {
+    if (research.interim_results) {
+      urls = JSON.parse(research.interim_results).urls;
     }
   } catch (e) {
     console.error("画像データのパースに失敗しました:", e);
@@ -32,11 +41,44 @@ export async function loader({ params }: { params: { id: string } }) {
 
   const processedResearch = {
     ...research,
-    content: content,
-    images: images,
+    content,
+    images,
+    urls,
   };
 
   return { research: processedResearch };
+}
+
+function DomainList({ urls }: { urls: string[] }) {
+  if (!urls || urls.length === 0) {
+    return null;
+  }
+
+  const extractDomain = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname;
+    } catch (e) {
+      console.error("無効なURL:", url);
+      return url;
+    }
+  };
+
+  return (
+    <div className="rounded-xl flex flex-wrap gap-2">
+      {urls.map((url: string, index: number) => (
+        <a
+          key={index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2 py-1 bg-stone-700 hover:bg-stone-500 rounded text-xs border border-stone-500 transition-colors"
+        >
+          {extractDomain(url)}
+        </a>
+      ))}
+    </div>
+  );
 }
 
 export default async function ResearchDetails({ loaderData }: Route.ComponentProps) {
@@ -52,7 +94,7 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
       case 3:
         return <span className="px-2 py-1 bg-red-900 bg-opacity-30 text-red-300 border border-red-700 text-xs rounded">エラー</span>;
       default:
-        return <span className="px-2 py-1 bg-stone-800 bg-opacity-30 text-stone-300 border border-stone-600 text-xs rounded">不明</span>;
+        return <span className="px-2 py-1 bg-stone-800 bg-opacity-30 text-stone-300 border border-stone-500 text-xs rounded">不明</span>;
     }
   }
 
@@ -119,6 +161,8 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
         ) : (
           <div className="prose prose-stone prose-invert max-w-none bg-stone-750 border border-stone-500 rounded-xl p-4">
             <MarkdownRenderer markdown={research.content} images={research.images} />
+            <h3 className="text-xl font-bold mb-2">参考リンク</h3>
+            <DomainList urls={research.urls} />
           </div>
         )}
       </div>
