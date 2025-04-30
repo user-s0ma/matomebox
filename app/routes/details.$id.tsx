@@ -1,5 +1,7 @@
 import type { Route } from "./+types/details.$id";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router";
+import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { researches } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
@@ -50,6 +52,8 @@ export async function loader({ params }: { params: { id: string } }) {
 }
 
 function DomainList({ urls }: { urls: string[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (!urls || urls.length === 0) {
     return null;
   }
@@ -65,18 +69,25 @@ function DomainList({ urls }: { urls: string[] }) {
   };
 
   return (
-    <div className="rounded-xl flex flex-wrap gap-2">
-      {urls.map((url: string, index: number) => (
-        <a
-          key={index}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-2 py-1 bg-stone-700 hover:bg-stone-500 rounded text-xs border border-stone-500 transition-colors"
-        >
-          {extractDomain(url)}
-        </a>
-      ))}
+    <div className="mt-4">
+      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-amber-800">
+        <h3>参考リンク ({urls.length}件)</h3>
+      </button>
+      {isOpen && (
+        <div className="rounded-xl flex flex-wrap gap-2 mt-4">
+          {urls.map((url: string, index: number) => (
+            <a
+              key={index}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-1 bg-stone-700 hover:bg-stone-500 rounded text-xs border border-stone-500 transition-colors"
+            >
+              {extractDomain(url)}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -125,10 +136,8 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
   return (
     <div className="max-w-4xl p-2 mx-auto">
       <div className="mb-6">
-        <Link to="/" className="text-amber-800 flex items-center text-xs">
-          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-          </svg>
+        <Link to="/" className="text-amber-800 flex items-center">
+          <ChevronLeft size={20} />
           リストに戻る
         </Link>
       </div>
@@ -148,20 +157,14 @@ export default async function ResearchDetails({ loaderData }: Route.ComponentPro
         <h3 className="text-xl font-bold mb-2">リサーチレポート</h3>
         {research.status === 1 ? (
           <div className="p-4 bg-amber-800 opacity-50 rounded-xl flex items-center">
-            <svg className="animate-spin h-5 w-5 mr-3 text-stone-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <div className="animate-spin h-5 w-5 mr-3 text-stone-500">
+              <LoaderCircle size={20} />
+            </div>
             リサーチは現在進行中です...
           </div>
         ) : (
           <div className="prose prose-stone prose-invert max-w-none bg-stone-750 border border-stone-500 rounded-xl p-4">
             <MarkdownRenderer markdown={research.content} images={research.images} />
-            <h3 className="text-xl font-bold mb-2">参考リンク</h3>
             <DomainList urls={research.urls} />
           </div>
         )}
