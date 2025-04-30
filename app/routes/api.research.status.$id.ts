@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.research.status.$id";
 import { getDrizzleClient } from "@/lib/db";
-import { researches } from "@/db/schema";
+import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -32,23 +32,38 @@ export async function loader({ request }: Route.LoaderArgs) {
       });
     }
 
+    const images = await db.query.researchImages.findMany({
+      where: eq(researchImages.research_id, id),
+    });
+
+    const sources = await db.query.researchSources.findMany({
+      where: eq(researchSources.research_id, id),
+    });
+
+    const progress = await db.query.researchProgress.findFirst({
+      where: eq(researchProgress.research_id, id),
+      orderBy: (progress, { desc }) => [desc(progress.created_at)],
+    });
+
     return new Response(
       JSON.stringify({
         id: research.id,
         status: research.status,
-        result: research.result,
-        interim_results: research.interim_results ? JSON.parse(research.interim_results) : null,
+        content: research.content,
+        progress: progress ? { message: progress.status_message, percentage: progress.progress_percentage } : null,
+        images: images,
+        sources: sources,
         created_at: research.created_at,
       }),
       {
-        status: 500,
+        status: 200,
         headers: {
           "Content-Type": "application/json",
         },
       }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return new Response(JSON.stringify({ error: "データ取得中にエラーが発生しました" }), {
       status: 500,
       headers: {

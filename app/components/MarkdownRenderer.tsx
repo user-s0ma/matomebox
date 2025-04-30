@@ -4,8 +4,8 @@ type MarkdownRendererProps = {
   markdown: string;
   images?: Array<{
     url: string;
-    alt?: string;
-    analysis?: string;
+    alt: string | null;
+    analysis: string | null;
   }>;
 };
 
@@ -104,7 +104,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
 
         result.push(
           <figure key={`img-${i}`} className="my-6">
-            <img src={src} alt={alt} className="mx-auto rounded-xl border border-stone-600 max-w-full" />
+            <img src={src} alt={alt} className=" mx-auto rounded-xl border border-stone-600 max-w-full" style={{ maxHeight: 500 }} />
             {caption && <figcaption className="text-center text-xs text-stone-400 mt-2">{caption}</figcaption>}
           </figure>
         );

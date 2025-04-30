@@ -9,7 +9,7 @@ const RATE_LIMIT = {
 };
 
 const VALIDATION = {
-  MAX_QUERY_LENGTH: 100, // クエリ最大長：100文字
+  MAX_QUERY_LENGTH: 50, // クエリ最大長：100文字
   MIN_DEPTH_BREADTH: 1, // 最小深さ・幅：1
   MAX_DEPTH_BREADTH: 3, // 最大深さ・幅：3
 };
@@ -17,12 +17,12 @@ const VALIDATION = {
 export async function action({ request, context }: Route.LoaderArgs) {
   const { query, depth, breadth } = (await request.json()) as any;
 
-  const queryFormat = (query as string).replace("\n", " ");
+  const queryFormat = query.replace("\n", " ");
   const depthNumber = parseInt(depth, 10);
   const breadthNumber = parseInt(breadth, 10);
 
   if (!queryFormat.trim() || typeof queryFormat !== "string" || queryFormat.length > VALIDATION.MAX_QUERY_LENGTH) {
-    return new Response(JSON.stringify({ success: false, error: "クエリは必須で、100文字以下である必要があります。" }), {
+    return new Response(JSON.stringify({ success: false, error: "クエリは必須で、50文字以下である必要があります。" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
@@ -65,8 +65,8 @@ export async function action({ request, context }: Route.LoaderArgs) {
       .insert(researches)
       .values({
         query: queryFormat,
-        depth,
-        breadth,
+        depth: depthNumber,
+        breadth: breadthNumber,
         status: 0,
       })
       .$returningId();
@@ -78,8 +78,8 @@ export async function action({ request, context }: Route.LoaderArgs) {
       params: {
         id: research.id,
         query: queryFormat,
-        depth,
-        breadth,
+        depth: depthNumber,
+        breadth: breadthNumber,
       },
     });
 

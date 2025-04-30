@@ -5,13 +5,13 @@ import { useNavigate } from "react-router";
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const query = url.searchParams.get("query");
-  const depth = url.searchParams.get("depth") || "2";
-  const breadth = url.searchParams.get("breadth") || "3";
+  const depth = parseInt(url.searchParams.get("depth") || "2", 10);
+  const breadth = parseInt(url.searchParams.get("breadth") || "3", 10);
 
-  let results: { research: { query: string; depth: string; breadth: string } } | null = null;
+  let results: { research: { query: string; depth: number; breadth: number } } | null = null;
   if (query) {
     results = {
-      research: { query, depth: depth || "2", breadth: breadth || "3" },
+      research: { query, depth: depth || 2, breadth: breadth || 3 },
     };
   }
 
@@ -65,7 +65,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="p-2 max-w-2xl mx-auto">
+    <div className="max-w-2xl p-2 mx-auto">
       <h2 className="text-2xl font-bold mb-6">新しい記事の作成</h2>
       <form onSubmit={handleSubmit} className="">
         <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">
@@ -74,9 +74,9 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
             name="query"
             rows={4}
             className="w-full p-2 pb-12 resize-none"
-            placeholder="リサーチしたいトピックや単語を入力してください"
+            placeholder="リサーチしたいトピックの単語を入力してください"
             defaultValue={results?.research.query || ""}
-            maxLength={100}
+            maxLength={50}
             required
           />
           <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-center rounded-b-xl">
@@ -87,7 +87,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
                   id="depth"
                   name="depth"
                   className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
-                  defaultValue={results?.research.depth || "2"}
+                  defaultValue={results?.research.depth.toString() || "2"}
                 >
                   <option value="1">浅い (速い)</option>
                   <option value="2">中程度</option>
@@ -100,7 +100,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
                   id="breadth"
                   name="breadth"
                   className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
-                  defaultValue={results?.research.breadth || "3"}
+                  defaultValue={results?.research.breadth.toString() || "3"}
                 >
                   <option value="1">狭い (1-2 トピック)</option>
                   <option value="3">中程度 (3-5 トピック)</option>

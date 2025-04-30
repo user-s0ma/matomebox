@@ -70,7 +70,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="p-2">
+    <div className="max-w-2xl p-2 mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">記事一覧</h2>
         <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
@@ -81,20 +81,21 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         {researches.map((research) => {
           return (
             <div key={research.id} className="border border-stone-500 rounded-xl p-4 bg-stone-800">
-              <div className="flex justify-between items-start mb-2">
+              <div className="flex justify-between items-start m-2">
                 <h3 className="text-xl font-bold">
                   <Link to={`/details/${research.id}`} className="wrap-anywhere">
-                    {research.query}
+                    {research.title || research.query}
                   </Link>
                 </h3>
                 <div className="shrink-0">{getStatusBadge(research.status)}</div>
               </div>
-              <div className="text-sm text-stone-500 mb-3">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
-              <div className="flex space-x-2">
-                <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs">
-                  削除
-                </button>
+              <div className="flex text-xs m-2">
+                <div className="m-2">カテゴリー: {research.category || "不明"}</div>
+                <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
               </div>
+              <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs m-2">
+                削除
+              </button>
             </div>
           );
         })}

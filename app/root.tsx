@@ -34,16 +34,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body className="bg-stone-800 text-white min-h-full flex flex-col font-sans">
         <header className="bg-stone-800 border-b border-stone-500 py-4 px-4">
-          <div className="container mx-auto flex justify-between items-center">
+          <div className="mx-auto flex justify-between items-center">
             <Link to="/" className="flex items-center space-x-2">
               <BookOpenText size={24} color="oklch(47.3% 0.137 46.201)" />
               <h1 className="text-xl font-bold">DeepResearch</h1>
             </Link>
           </div>
         </header>
-        <main className="container mx-auto py-4 flex-grow">{children}</main>
+        <main>{children}</main>
         <footer className="bg-stone-800 border-t border-stone-500 p-4 mt-auto">
-          <div className="container mx-auto text-center">
+          <div className="mx-auto text-center">
             <div className="mb-2 flex items-center justify-center space-x-1">
               <BookOpenText size={20} color="oklch(47.3% 0.137 46.201)" />
               <span className="text-xs">DeepResearch</span>
@@ -80,7 +80,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <h1 className="text-stone-100 text-xl mb-4 font-bold">{message}</h1>
       <p className="mb-4">{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto bg-stone-800 border border-stone-600 rounded text-stone-300 text-sm">
+        <pre className="w-full p-4 overflow-x-auto bg-stone-800 border border-stone-600 rounded-xl text-stone-300 text-sm">
           <code>{stack}</code>
         </pre>
       )}

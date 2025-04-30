@@ -31,7 +31,7 @@ export class ResearchBrowser {
       await this.browser.version();
       return true;
     } catch (e) {
-      console.log(e);
+      console.error(e);
       return false;
     }
   }
@@ -45,7 +45,7 @@ export class ResearchBrowser {
       try {
         await this.browser.close();
       } catch (error) {
-        console.log("ブラウザを閉じる際にエラーが発生しました：", error);
+        console.error("ブラウザを閉じる際にエラーが発生しました：", error);
       }
       this.browser = null;
     }
@@ -58,7 +58,7 @@ export async function getBrowser(): Promise<ResearchBrowser> {
 
 async function performSearch(page: Page, query: string, limit: number): Promise<string[]> {
   const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
-  console.log(`📄 コンテンツ抽出開始: ${searchUrl}`);
+
   await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('article[data-testid="result"] a[data-testid="result-title-a"]', { timeout: 10000 });
 
@@ -70,14 +70,11 @@ async function performSearch(page: Page, query: string, limit: number): Promise<
       .slice(0, max);
   }, limit);
 
-  console.log(`📋 抽出されたURL (${urls.length}件):`, urls);
   return urls;
 }
 
 async function extractContent(page: Page, url: string): Promise<SearchResult> {
-  console.log(`📄 コンテンツ抽出開始: ${url}`);
   await page.goto(url, { waitUntil: "domcontentloaded" });
-  console.log("✅ ページの読み込みが完了しました");
 
   await page.evaluate(() => {
     const closeButtons = Array.from(document.querySelectorAll("button, a, div[role='button']")).filter((el) => {
@@ -97,7 +94,6 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  console.log("📝 ページコンテンツを抽出中...");
   const { title, description, content, links, images } = await page.evaluate(() => {
     const pageTitle = document.title || "タイトルなし";
 
@@ -212,13 +208,6 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
     };
   });
 
-  console.log(`📊 抽出結果:
-      タイトル: ${title}
-      説明: ${description.substring(0, 100)}${description.length > 100 ? "..." : ""}
-      リンク数: ${links.length}件
-      画像数: ${images.length}件
-      コンテンツサイズ: ${content.length}文字`);
-
   function htmlToMarkdown(html: string, images: any[]): string {
     let processedHtml = html;
 
@@ -248,9 +237,6 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
 }
 
 export async function webSearch(browser: Browser, query: string, limit = 5): Promise<SearchResult[]> {
-  console.log(`🔍 検索開始: "${query}" (最大${limit}件の結果)`);
-  const startTime = Date.now();
-
   let urls: string[];
   {
     const page = await browser.newPage();
@@ -260,7 +246,6 @@ export async function webSearch(browser: Browser, query: string, limit = 5): Pro
       await page.close();
     }
   }
-  console.log(`⏱️ 検索完了（${Date.now() - startTime}ms）: ${urls.length} 件`);
 
   const results: SearchResult[] = [];
   for (const url of urls) {
@@ -276,7 +261,7 @@ export async function webSearch(browser: Browser, query: string, limit = 5): Pro
         try {
           await page.close();
         } catch (error) {
-          console.log("ページを閉じる際にエラーが発生しました：", error);
+          console.error("ページを閉じる際にエラーが発生しました：", error);
         }
       }
     }
