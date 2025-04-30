@@ -90,8 +90,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <div className="shrink-0">{getStatusBadge(research.status)}</div>
               </div>
               <div className="flex text-xs m-2">
-                <div className="m-2">カテゴリー: {research.category || "不明"}</div>
-                <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+                <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
+                <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
               </div>
               <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs m-2">
                 削除

@@ -179,8 +179,8 @@ export default function ResearchDetails({ loaderData }: Route.ComponentProps) {
         <div className="shrink-0">{getStatusBadge(research.status)}</div>
       </div>
       <div className="flex text-xs m-2">
-      <div className="m-2">カテゴリー: {research.category || "不明"}</div>
-        <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+      <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
+        <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
       </div>
       <div className="mb-6 bg-stone-750 border border-stone-500 rounded-xl p-4">
         <h3 className="text-xl font-bold m-2">パラメータ</h3>
