@@ -76,6 +76,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
             className="w-full p-2 pb-12 resize-none"
             placeholder="リサーチしたいトピックや単語を入力してください"
             defaultValue={results?.research.query || ""}
+            maxLength={100}
             required
           />
           <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-center rounded-b-xl">
