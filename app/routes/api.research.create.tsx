@@ -21,13 +21,10 @@ export async function action({ request, context }: Route.LoaderArgs) {
   const breadthNumber = parseInt(breadth, 10);
 
   if (!query || typeof query !== "string" || query.length > VALIDATION.MAX_QUERY_LENGTH) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "クエリは必須で、100文字以下である必要があります。",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: false, error: "クエリは必須で、100文字以下である必要があります。" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   if (
@@ -38,13 +35,10 @@ export async function action({ request, context }: Route.LoaderArgs) {
     breadthNumber < VALIDATION.MIN_DEPTH_BREADTH ||
     breadthNumber > VALIDATION.MAX_DEPTH_BREADTH
   ) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "深さと幅は1から3の整数である必要があります。",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: false, error: "深さと幅は1から3の整数である必要があります。" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const db = getDrizzleClient();
@@ -88,7 +82,10 @@ export async function action({ request, context }: Route.LoaderArgs) {
       },
     });
 
-    return new Response(JSON.stringify({ success: true, id: research.id }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, id: research.id }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("リサーチワークフローの開始に失敗しました:", error);
 
