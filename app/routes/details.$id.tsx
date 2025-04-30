@@ -186,7 +186,7 @@ export default function ResearchDetails({ loaderData }: Route.ComponentProps) {
         <h3 className="text-xl font-bold m-2">パラメータ</h3>
         <div className="grid grid-cols-2 gap-2">
           <div>深さ: {research.depth}</div>
-          <div>幅: {research.breadth}</div>
+          <div>トピック: {research.breadth}</div>
         </div>
         <h3 className="text-xl font-bold m-2">進捗</h3>
         <div className="p-4 bg-amber-800 opacity-50 rounded-xl flex items-center">

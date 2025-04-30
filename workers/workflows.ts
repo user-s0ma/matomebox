@@ -269,7 +269,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         });
 
         const content = reportResult.content.replaceAll("```markdown", "").replaceAll("```", "");
-        const title = content.split("\n")[0].replace("#", "").trim().substring(0, 50);
+        const title = content.split("\n")[0].replace("#", "").trim().substring(0, 100);
         const category = reportResult.category;
 
         await db
