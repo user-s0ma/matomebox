@@ -17,10 +17,11 @@ const VALIDATION = {
 export async function action({ request, context }: Route.LoaderArgs) {
   const { query, depth, breadth } = (await request.json()) as any;
 
+  const queryFormat = (query as string).replace("\n", "");
   const depthNumber = parseInt(depth, 10);
   const breadthNumber = parseInt(breadth, 10);
 
-  if (!query || typeof query !== "string" || query.length > VALIDATION.MAX_QUERY_LENGTH) {
+  if (!queryFormat.trim() || typeof queryFormat !== "string" || queryFormat.length > VALIDATION.MAX_QUERY_LENGTH) {
     return new Response(JSON.stringify({ success: false, error: "クエリは必須で、100文字以下である必要があります。" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -63,7 +64,7 @@ export async function action({ request, context }: Route.LoaderArgs) {
     const [research] = await db
       .insert(researches)
       .values({
-        query,
+        query: queryFormat,
         depth,
         breadth,
         status: 0,
@@ -76,7 +77,7 @@ export async function action({ request, context }: Route.LoaderArgs) {
       id,
       params: {
         id: research.id,
-        query,
+        query: queryFormat,
         depth,
         breadth,
       },
