@@ -1,3 +1,4 @@
+import { imageSize } from "image-size";
 import { model } from "@/lib/gemini";
 
 type ImageData = {
@@ -25,60 +26,22 @@ export class ImageProcessor {
 
       try {
         const res = await fetch(image.url);
-
         if (!res.ok) {
           continue;
         }
 
         const blob = await res.arrayBuffer();
+        const analysis = await this.analyzeImage(blob, res.headers.get("content-type"));
 
-        if (typeof window !== "undefined" && typeof Image !== "undefined") {
-          const img = new Image();
-          const blobUrl = URL.createObjectURL(new Blob([blob]));
-
-          try {
-            const dimensions = await new Promise<{ width: number; height: number } | null>((resolve) => {
-              img.onload = () => {
-                const width = img.naturalWidth;
-                const height = img.naturalHeight;
-                resolve({ width, height });
-              };
-              img.onerror = () => {
-                resolve(null);
-              };
-              img.src = blobUrl;
-
-              setTimeout(() => {
-                if (!img.complete) {
-                  resolve(null);
-                }
-              }, 5000);
-            });
-
-            URL.revokeObjectURL(blobUrl);
-
-            if (!dimensions || !(dimensions.width >= 200 || dimensions.height >= 200)) {
-              continue;
-            }
-
-            const analysis = await this.analyzeImage(blob, res.headers.get("content-type"));
-
-            analyzedImages.push({
-              ...image,
-              analysis
-            });
-          } catch (error) {
-            console.error(`画像サイズ検出エラー: ${image.url}`, error);
-            continue;
-          }
-        } else {
-          const analysis = await this.analyzeImage(blob, res.headers.get("content-type"));
-
-          analyzedImages.push({
-            ...image,
-            analysis,
-          });
+        const dimensions = imageSize(new Uint8Array(blob));
+        if (!dimensions || (dimensions.width < 200 && dimensions.height < 200)) {
+          continue;
         }
+
+        analyzedImages.push({
+          ...image,
+          analysis,
+        });
       } catch (error) {
         console.error(`画像処理エラー: ${image.url}`, error);
       }

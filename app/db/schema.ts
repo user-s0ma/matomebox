@@ -16,7 +16,7 @@ export const researches = mysqlTable("researches", {
 
 export const researchProgress = mysqlTable("research_progress", {
   id: varchar("id", { length: 128 }).notNull().primaryKey().$defaultFn(() => uuidv4()),
-  research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id),
+  research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id, { onDelete: "cascade" }),
   status_message: text("status_message").notNull(),
   progress_percentage: int("progress_percentage"),
   created_at: timestamp("created_at").defaultNow(),
@@ -24,7 +24,7 @@ export const researchProgress = mysqlTable("research_progress", {
 
 export const researchImages = mysqlTable("research_images", {
   id: varchar("id", { length: 128 }).notNull().primaryKey().$defaultFn(() => uuidv4()),
-  research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id),
+  research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id, { onDelete: "cascade" }),
   url: text("url").notNull(),
   alt: text("alt"),
   analysis: text("analysis"),
@@ -33,7 +33,7 @@ export const researchImages = mysqlTable("research_images", {
 
 export const researchSources = mysqlTable("research_sources", {
   id: varchar("id", { length: 128 }).notNull().primaryKey().$defaultFn(() => uuidv4()),
-  research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id),
+  research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id, { onDelete: "cascade" }),
   url: text("url").notNull(),
   domain: varchar("domain", { length: 255 }).notNull(),
   title: text("title"),

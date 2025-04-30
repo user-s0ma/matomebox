@@ -80,7 +80,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
       }
 
       // 画像
-      const imageMatch = line.match(/!\[(.*?)\]\((.*?)\)/);
+      const imageMatch = line.match(/!\[(.*?)\]\(([^\s\)]+)\)/);
       if (imageMatch) {
         if (currentParagraph.length > 0) {
           result.push(
@@ -143,7 +143,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
     const parts: React.ReactNode[] = [];
     let currentText = "";
 
-    const regex = /(\*\*|__)(.*?)\1|(\[)(.*?)(\]\((.*?)\))/g;
+    const regex = /(\*\*|__)(.*?)\1|(\[)(.*?)(\]\(([^\s\)]+)\))/g;
     let lastIndex = 0;
     let match;
 
@@ -156,7 +156,11 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
         // 太字 (**text** or __text__)
         parts.push(currentText);
         currentText = "";
-        parts.push(<strong key={`strong-${match.index}`} className="text-stone-100 font-bold">{match[2]}</strong>);
+        parts.push(
+          <strong key={`strong-${match.index}`} className="font-bold">
+            {match[2]}
+          </strong>
+        );
       } else if (match[3]) {
         // リンク ([text](url))
         parts.push(currentText);
