@@ -168,7 +168,7 @@ export default function ResearchDetails() {
   return (
     <div className="max-w-3xl p-2 mx-auto">
       <div className="mb-6">
-        <Link to="/" className="text-amber-800 flex items-center">
+        <Link to="/dash" className="text-amber-800 flex items-center">
           <ChevronLeft size={20} />
           リストに戻る
         </Link>

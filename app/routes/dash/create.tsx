@@ -56,7 +56,7 @@ export default function CreatePage() {
         throw new Error(errorMessage);
       }
 
-      navigate("/");
+      navigate("/dash");
     } catch (error) {
       console.error("Error creating research:", error);
       setError(error instanceof Error ? error.message : "リサーチの作成に失敗しました");

@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm";
 import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
 import { model } from "@/lib/gemini";
-import { getBrowser, webSearch } from "@/lib/webSearch";
+import { getBrowser, webSearch } from "@/lib/search/webSearch";
 import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT, DEEP_FINAL_REPORT_PROMPT } from "@/lib/prompts";
-import { ImageProcessor } from "@/lib/imageProcessor";
+import { ImageProcessor } from "@/lib/search/imageProcessor";
 
 interface ResearchParams {
   id: string;
