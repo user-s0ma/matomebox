@@ -36,9 +36,11 @@ function scanDirectory(dir: string, parentPath: string = "", options: Required<O
   const currentLevelRoutes: RouteConfigEntry[] = [];
 
   if (indexFile) {
-    const routePath = parentPath || "/";
     const fullPath = join(dir, indexFile);
-    const routeEntry = route(routePath, relative(options.rootDir, fullPath));
+    const routeEntry: RouteConfigEntry = {
+      file: relative(options.rootDir, fullPath),
+      index: true,
+    };
 
     (layoutFile ? currentLevelRoutes : routes).push(routeEntry);
   }

@@ -1,4 +1,4 @@
-import type { Route } from "./+types/api.research.delete";
+import type { Route } from "./+types/delete";
 import { getDrizzleClient } from "@/lib/db";
 import { researches } from "@/db/schema";
 import { eq } from "drizzle-orm";

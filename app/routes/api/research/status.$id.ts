@@ -1,4 +1,4 @@
-import type { Route } from "./+types/research.status.$id";
+import type { Route } from "./+types/status.$id";
 import { getDrizzleClient } from "@/lib/db";
 import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
 import { eq } from "drizzle-orm";
