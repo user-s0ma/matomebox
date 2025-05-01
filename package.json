@@ -14,7 +14,7 @@
   "dependencies": {
     "@cloudflare/puppeteer": "^1.0.2",
     "@google/generative-ai": "0.24.0",
-    "@react-router/node": "^7.5.3",
+    "@react-router/node": "^7.5.0",
     "@tidbcloud/serverless": "0.2.0",
     "drizzle-orm": "^0.43.1",
     "mysql2": "^3.14.1",
