@@ -1,6 +1,6 @@
 import type { Route } from "./+types/create";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLoaderData } from "react-router";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -18,8 +18,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { results };
 }
 
-export default function CreatePage({ loaderData }: Route.ComponentProps) {
-  const { results } = loaderData;
+export default function CreatePage() {
+  const { results } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export default function CreatePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="max-w-2xl p-2 mx-auto">
-      <h2 className="text-2xl font-bold mb-6">新しいリサーチの作成</h2>
+      <h2 className="text-2xl font-bold mb-2">新しいリサーチの作成</h2>
       <form onSubmit={handleSubmit} className="">
         <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">
           <textarea

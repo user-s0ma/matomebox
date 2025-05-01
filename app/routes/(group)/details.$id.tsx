@@ -1,6 +1,5 @@
-import type { Route } from "./+types/details.$id";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useLoaderData } from "react-router";
 import { ChevronLeft, LoaderCircle, CircleCheck } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { researches, researchImages, researchSources, researchProgress, type ResearchProgress } from "@/db/schema";
@@ -125,8 +124,8 @@ function DomainList({ urls }: { urls: string[] }) {
   );
 }
 
-export default function ResearchDetails({ loaderData }: Route.ComponentProps) {
-  const { research } = loaderData;
+export default function ResearchDetails() {
+  const { research } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   function getStatusBadge(status: number) {

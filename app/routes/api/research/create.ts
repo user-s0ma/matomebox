@@ -1,4 +1,4 @@
-import type { Route } from "./+types/api.research.create";
+import type { Route } from "./+types/create";
 import { getDrizzleClient } from "@/lib/db";
 import { researches } from "@/db/schema";
 import { and, gt } from "drizzle-orm";
@@ -14,7 +14,7 @@ const VALIDATION = {
   MAX_DEPTH_BREADTH: 3, // 最大深さ・幅：3
 };
 
-export async function action({ request, context }: Route.LoaderArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
   const { query, depth, breadth } = (await request.json()) as any;
 
   const queryFormat = query.replace("\n", " ");

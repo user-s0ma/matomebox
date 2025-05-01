@@ -3,7 +3,7 @@ import { getDrizzleClient } from "@/lib/db";
 import { researches } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function action({ request }: Route.LoaderArgs) {
+export async function action({ request }: Route.ActionArgs) {
   const { id } = (await request.json()) as any;
 
   return new Response(

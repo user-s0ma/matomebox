@@ -1,13 +1,12 @@
 {
-  "name": "matome-box",
+  "name": "matomebox",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "react-router build",
     "dev": "npm run build && wrangler dev --remote",
     "deploy": "npm run build && wrangler deploy",
-    "cf-typegen": "wrangler types",
-    "typecheck": "npm run cf-typegen && react-router typegen && tsc -b",
+    "typecheck": "wrangler types && react-router typegen && tsc -b",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:migrate": "drizzle-kit migrate",
     "drizzle:studio": "drizzle-kit studio"
@@ -31,7 +30,7 @@
     "@cloudflare/vite-plugin": "^1.0.0",
     "@cloudflare/workers-types": "^4.20250429.0",
     "@react-router/dev": "^7.5.0",
-    "@react-router/fs-routes": "^7.5.3",
+    "@react-router/fs-routes": "^7.5.0",
     "@tailwindcss/vite": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
