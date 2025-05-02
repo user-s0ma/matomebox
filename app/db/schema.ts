@@ -5,11 +5,12 @@ export const researches = mysqlTable("researches", {
   id: varchar("id", { length: 128 }).notNull().primaryKey().$defaultFn(() => uuidv4()),
   query: varchar("query", { length: 255 }).notNull(),
   title: varchar("title", { length: 255 }),
+  thumbnail: text("thumbnail"),
+  content: text("content"),
   category: varchar("category", { length: 255 }),
   depth: int("depth").notNull(),
   breadth: int("breadth").notNull(),
   status: int("status").notNull(),
-  content: text("content"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -25,6 +26,7 @@ export const researchProgress = mysqlTable("research_progress", {
 export const researchImages = mysqlTable("research_images", {
   id: varchar("id", { length: 128 }).notNull().primaryKey().$defaultFn(() => uuidv4()),
   research_id: varchar("research_id", { length: 128 }).notNull().references(() => researches.id, { onDelete: "cascade" }),
+  source_id: varchar("source_id", { length: 128 }).references(() => researchSources.id, { onDelete: "set null" }),
   url: text("url").notNull(),
   alt: text("alt"),
   analysis: text("analysis"),

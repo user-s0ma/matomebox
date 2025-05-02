@@ -192,6 +192,7 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
           url: img.src,
           alt: img.alt || "",
           context: context.substring(0, 400),
+          sourceUrl: url,
         };
       });
 
@@ -206,7 +207,7 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
       links: allLinks,
       images: images,
     };
-  });
+  }, url);
 
   function htmlToMarkdown(html: string, images: any[]): string {
     let processedHtml = html;

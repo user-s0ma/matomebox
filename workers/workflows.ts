@@ -1,5 +1,5 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
 import { model } from "@/lib/gemini";
@@ -118,8 +118,20 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
             if (processedImages && processedImages.length > 0) {
               for (const img of processedImages.slice(0, 10)) {
+                let sourceId = null;
+                if (img.sourceUrl) {
+                  const sourceRecord = await db.query.researchSources.findFirst({
+                    where: and(eq(researchSources.research_id, id), eq(researchSources.url, img.sourceUrl)),
+                  });
+
+                  if (sourceRecord) {
+                    sourceId = sourceRecord.id;
+                  }
+                }
+
                 await db.insert(researchImages).values({
                   research_id: id,
+                  source_id: sourceId, // ソースIDを設定
                   url: img.url,
                   alt: img.alt || "",
                   analysis: img.analysis || "",
@@ -242,11 +254,6 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
           progress_percentage: 90,
         });
 
-        const sources = await db.query.researchSources.findMany({
-          where: eq(researchSources.research_id, id),
-        });
-        const sourceUrls = sources.map((source) => source.url);
-
         const reportResult = await step.do(
           "[write-final-report]",
           {
@@ -258,7 +265,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
             timeout: "10 minutes",
           },
           async () => {
-            return await this.writeFinalReport(query, allLearnings, sourceUrls, images);
+            return await this.writeFinalReport(query, allLearnings, images);
           }
         );
 
@@ -275,9 +282,10 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         await db
           .update(researches)
           .set({
-            content,
+            content: reportResult.content.replaceAll("```markdown", "").replaceAll("```", ""),
             title,
-            category,
+            category: reportResult.category,
+            thumbnail: reportResult.firstImageUrl,
             status: 2,
             updated_at: new Date(),
           })
@@ -357,7 +365,14 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
       })
     );
 
-    const processedImages = processedResults.flatMap((result) => result.analyzedImages).filter((img) => img.analysis);
+    const processedImages = processedResults
+      .flatMap((processedResult, idx) => {
+        return processedResult.analyzedImages.map((img) => ({
+          ...img,
+          sourceUrl: result[idx].url,
+        }));
+      })
+      .filter((img) => img.analysis);
     const contentsWithImages = processedResults.map((result) => result.enhancedMarkdown);
 
     if (contentsWithImages.length === 0) {
@@ -467,25 +482,13 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     }
   }
 
-  async writeFinalReport(prompt: string, learnings: string[], visitedUrls: string[], images: any[] = []) {
-    try {
-      const category = await this.determineCategory(prompt, learnings);
+  async writeFinalReport(prompt: string, learnings: string[], images: any[] = []) {
+    const category = await this.determineCategory(prompt, learnings);
+    const articleDraft = await this.generateArticleDraft(prompt, learnings);
 
-      const articleDraft = await this.generateArticleDraft(prompt, learnings);
+    const imageProcessor = new ImageProcessor();
+    const { content: finalArticle, firstImageUrl } = await imageProcessor.processArticleWithImages(articleDraft, images);
 
-      const imageProcessor = new ImageProcessor();
-      const finalArticle = await imageProcessor.processArticleWithImages(articleDraft, images);
-
-      return { content: finalArticle, category: category };
-    } catch (error) {
-      const { response } = await model.generateContent([
-        DEEP_FINAL_REPORT_PROMPT() +
-          `プロンプト「${prompt}」を使用して、収集した情報に基づいて記事を作成してください。\n\n` +
-          `${learnings.map((item, index) => `${index + 1}. ${item}`).join("\n")}`,
-      ]);
-      const basicReport = response.text();
-
-      return { content: basicReport, category: "その他" };
-    }
+    return { content: finalArticle, category, firstImageUrl };
   }
 }

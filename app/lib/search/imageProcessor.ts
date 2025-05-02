@@ -9,10 +9,14 @@ type ImageData = {
 };
 
 export class ImageProcessor {
-  async processArticleWithImages(articleText: string, images: ImageData[]): Promise<string> {
+  async processArticleWithImages(articleText: string, images: ImageData[]): Promise<{content: string, firstImageUrl?: string}> {
     const analyzedImages = await this.analyzeAllImages(images);
+    const result = await this.createIntegratedArticle(articleText, analyzedImages);
 
-    return await this.createIntegratedArticle(articleText, analyzedImages);
+    const firstImageMatch = result.match(/!\[.*?\]\((.*?)\)/);
+    const firstImageUrl = firstImageMatch ? firstImageMatch[1] : undefined;
+
+    return { content: result, firstImageUrl };
   }
 
   public async analyzeAllImages(images: ImageData[]): Promise<ImageData[]> {

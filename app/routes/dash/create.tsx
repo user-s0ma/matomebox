@@ -108,7 +108,7 @@ export default function CreatePage() {
                 </select>
               </div>
             </div>
-            <button type="submit" className="text-xs bg-amber-800 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
+            <button type="submit" className="text-xs bg-amber-700 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
               {isSubmitting ? "処理..." : "作成"}
             </button>
           </div>

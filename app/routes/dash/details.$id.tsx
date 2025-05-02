@@ -62,7 +62,7 @@ function ProgressDetails({ progressHistory, status }: { progressHistory: Researc
 
   return (
     <div className="m-2">
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-amber-800">
+      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-amber-700">
         <h3>{isOpen ? "ステップを閉じる" : "ステップを開く"}</h3>
       </button>
       {isOpen && (
@@ -102,7 +102,7 @@ function DomainList({ urls }: { urls: string[] }) {
 
   return (
     <div className="m-2">
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-amber-800">
+      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-amber-700">
         <h3>参考リンク ({urls.length}件)</h3>
       </button>
       {isOpen && (
@@ -168,7 +168,7 @@ export default function ResearchDetails() {
   return (
     <div className="max-w-3xl p-2 mx-auto">
       <div className="mb-6">
-        <Link to="/dash" className="text-amber-800 flex items-center">
+        <Link to="/dash" className="text-amber-700 flex items-center">
           <ChevronLeft size={20} />
           リストに戻る
         </Link>
@@ -181,24 +181,23 @@ export default function ResearchDetails() {
       <div className="m-2">カテゴリー: {research.category || "不明"}</div>
         <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
       </div>
-      <div className="mb-6 bg-stone-750 border border-stone-500 rounded-xl p-4">
+      <div className="mb-6border border-stone-500 rounded-xl p-4">
         <h3 className="text-xl font-bold m-2">パラメータ</h3>
         <div className="grid grid-cols-2 gap-2">
           <div>深さ: {research.depth}</div>
           <div>トピック: {research.breadth}</div>
         </div>
         <h3 className="text-xl font-bold m-2">進捗</h3>
-        <div className="p-4 bg-amber-800 opacity-50 rounded-xl flex items-center">
+        <div className="p-4 bg-stone-700 opacity-50 rounded-xl flex items-center">
           {research.status !== 1 ? (
             <div className="mr-4">
               <CircleCheck size={20} />
             </div>
           ) : (
-            <div className="animate-spin mr-4 text-stone-500">
+            <div className="animate-spin mr-4">
               <LoaderCircle size={20} />
             </div>
           )}
-
           <div className="w-full bg-stone-800 h-2 rounded-full">
             <div
               className="bg-amber-700 h-2 rounded-full transition-all duration-500 ease-in-out"
@@ -211,7 +210,7 @@ export default function ResearchDetails() {
       <div className="mb-6">
         <h3 className="text-xl font-bold mb-2">リサーチレポート</h3>
         {research.status !== 1 && (
-          <div className="prose prose-stone prose-invert max-w-none bg-stone-750 border border-stone-500 rounded-xl p-4">
+          <div className="border border-stone-500 rounded-xl p-4">
             <MarkdownRenderer markdown={research.content} images={research.images} />
             <DomainList urls={research.urls} />
           </div>

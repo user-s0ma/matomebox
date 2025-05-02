@@ -61,7 +61,7 @@ export default function Home() {
       <div className="p-2 text-center">
         <h2 className="text-2xl font-bold mb-2">リサーチ一覧</h2>
         <p className="mb-4">リサーチがまだありません。</p>
-        <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
+        <Link to="/create" className="bg-amber-700 py-2 px-4 rounded-xl">
           新しいリサーチを作成
         </Link>
       </div>
@@ -72,7 +72,7 @@ export default function Home() {
     <div className="max-w-2xl p-2 mx-auto">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-2xl font-bold">リサーチ一覧</h2>
-        <Link to="/create" className="bg-amber-800 py-2 px-4 rounded-xl">
+        <Link to="/dash/create" className="bg-amber-700 py-2 px-4 rounded-xl">
           新しいリサーチを作成
         </Link>
       </div>

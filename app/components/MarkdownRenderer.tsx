@@ -36,7 +36,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
           currentParagraph = [];
         }
         result.push(
-          <h1 key={`h1-${i}`} className="text-3xl font-bold my-4 text-stone-10">
+          <h1 key={`h1-${i}`} className="text-3xl font-bold my-4">
             {parseInline(line.slice(2))}
           </h1>
         );
@@ -54,7 +54,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
           currentParagraph = [];
         }
         result.push(
-          <h2 key={`h2-${i}`} className="text-2xl font-bold my-3 text-stone-10">
+          <h2 key={`h2-${i}`} className="text-2xl font-bold my-3">
             {parseInline(line.slice(3))}
           </h2>
         );
@@ -72,7 +72,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
           currentParagraph = [];
         }
         result.push(
-          <h3 key={`h3-${i}`} className="text-xl font-bold my-2 text-stone-200">
+          <h3 key={`h3-${i}`} className="text-xl font-bold my-2">
             {parseInline(line.slice(4))}
           </h3>
         );
@@ -104,7 +104,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
 
         result.push(
           <figure key={`img-${i}`} className="my-6">
-            <img src={src} alt={alt} className=" mx-auto rounded-xl border border-stone-600 max-w-full" style={{ maxHeight: 500 }} />
+            <img src={src} alt={alt} className=" mx-auto rounded-xl border border-stone-500 max-w-full" style={{ maxHeight: 500 }} />
             {caption && <figcaption className="text-center text-xs text-stone-400 mt-2">{caption}</figcaption>}
           </figure>
         );
@@ -115,7 +115,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
       if (line.trim() === "") {
         if (currentParagraph.length > 0) {
           result.push(
-            <p key={`p-${i}`} className="mb-4 text-stone-300">
+            <p key={`p-${i}`} className="mb-4">
               {parseInline(currentParagraph.join(" "))}
             </p>
           );
@@ -130,7 +130,7 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
 
     if (currentParagraph.length > 0) {
       result.push(
-        <p key="last-p" className="mb-4 text-stone-300">
+        <p key="last-p" className="mb-4">
           {parseInline(currentParagraph.join(" "))}
         </p>
       );
