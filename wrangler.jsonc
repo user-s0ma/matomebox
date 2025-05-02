@@ -7,7 +7,6 @@
   "observability": {
     "enabled": true
   },
-  "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
   "workflows": [{ "name": "nectnews-research-workflow", "binding": "RESEARCH_WORKFLOW", "class_name": "ResearchWorkflow" }]
 }

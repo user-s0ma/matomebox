@@ -67,7 +67,7 @@ export default function CreatePage() {
 
   return (
     <div className="max-w-2xl p-2 mx-auto">
-      <div className="mb-6">
+      <div className="mb-2">
         <Link to="/" className="text-amber-700 flex items-center">
           <ChevronLeft size={20} />
           リストに戻る

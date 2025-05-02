@@ -38,13 +38,13 @@ export default function Home() {
               {research.thumbnail ? (
                 <img src={research.thumbnail} alt={research.title || ""} className="aspect-square object-cover" />
               ) : (
-                <div className="aspect-square bg-stone-500" />
+                <div className="shrink-0 aspect-square bg-stone-500" />
               )}
               <div className="p-2">
-                <h3 className="m-2 font-bold line-clamp-3 wrap-anywhere">{research.title}</h3>
+                <h3 className="mx-2 font-bold line-clamp-2 wrap-anywhere">{research.title}</h3>
                 <div className="flex text-xs">
-                  <div className="m-2">カテゴリー: {research.category || "不明"}</div>
-                  <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+                  <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
+                  <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
                 </div>
               </div>
             </Link>
