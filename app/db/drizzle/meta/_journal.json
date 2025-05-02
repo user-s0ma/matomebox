@@ -15,6 +15,13 @@
       "when": 1746026441129,
       "tag": "0001_new_spirit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1746144894397,
+      "tag": "0002_sparkling_romulus",
+      "breakpoints": true
     }
   ]
 }

@@ -79,7 +79,7 @@ export default function Home() {
       <div className="grid gap-4">
         {researches.map((research) => {
           return (
-            <div key={research.id} className="border border-stone-500 rounded-xl p-4 bg-stone-800">
+            <div key={research.id} className="border border-stone-500 rounded-xl p-4">
               <div className="flex justify-between items-start m-2">
                 <h3 className="text-xl font-bold">
                   <Link to={`/dash/details/${research.id}`} className="wrap-anywhere">

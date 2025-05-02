@@ -2,8 +2,8 @@ import type { Route } from "./+types/root";
 import { isRouteErrorResponse, Links, Meta, Outlet } from "react-router";
 import "./app.css";
 
-const DEFAULT_TITLE = "まとめボックス - AIを活用したニュースまとめサイト";
-const DEFAULT_DESCRIPTION = "ニュースまとめサイト「まとめボックス」。幅広い分野のニュースをいち早くまとめます。";
+const DEFAULT_TITLE = "Nectニュース - AIを活用したニュースまとめサイト";
+const DEFAULT_DESCRIPTION = "ニュースまとめサイト「Nectニュース」。幅広い分野のニュースをいち早くまとめます。";
 
 export default function App() {
   return (

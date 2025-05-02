@@ -24,7 +24,7 @@ export function dirRoutes(options?: Options): RouteConfig {
 
   const routes = scanDirectory(rootDir, "", opts);
 
-  printRoutesAsTree(routes);
+  printRouteTree(routes);
   return routes as unknown as RouteConfig;
 }
 
@@ -37,12 +37,22 @@ function scanDirectory(dir: string, parentPath: string = "", options: Required<O
 
   if (indexFile) {
     const fullPath = join(dir, indexFile);
-    const routeEntry: RouteConfigEntry = {
-      file: relative(options.rootDir, fullPath),
-      index: true,
-    };
-
-    (layoutFile ? currentLevelRoutes : routes).push(routeEntry);
+    if (parentPath) {
+      const routePath = parentPath.startsWith("/")
+        ? parentPath
+        : `/${parentPath}`;
+      const routeEntry = route(
+        routePath,
+        relative(options.rootDir, fullPath)
+      );
+      (layoutFile ? currentLevelRoutes : routes).push(routeEntry);
+    } else {
+      const routeEntry: RouteConfigEntry = {
+        index: true,
+        file: relative(options.rootDir, fullPath),
+      };
+      (layoutFile ? currentLevelRoutes : routes).push(routeEntry);
+    }
   }
 
   files.forEach((item) => {
@@ -112,24 +122,16 @@ function createRoutePath(fileName: string, parentPath: string = ""): string {
   return path;
 }
 
-function printRoutesAsTree(routes: RouteConfigEntry[], indent = 0): void {
-  function printRouteTree(routes: RouteConfigEntry[], indent = 0): void {
-    const indentation = "  ".repeat(indent);
-
-    const pathRoutes = routes.filter((route) => route.path);
-    const layoutRoutes = routes.filter((route) => !route.path && route.children);
-
-    pathRoutes.forEach((route) => {
-      console.log(`${indentation}├── "${route.path}" (${route.file})`);
-    });
-
-    layoutRoutes.forEach((layout) => {
-      console.log(`${indentation}├── (layout) (${layout.file})`);
-      if (layout.children) {
-        printRouteTree(layout.children, indent + 1);
-      }
-    });
+function printRouteTree(routes: RouteConfigEntry[], indent = 0): void {
+  const indentStr = "  ".repeat(indent);
+  for (const r of routes) {
+    if (r.path) {
+      console.log(`${indentStr}├── "${r.path}" (${r.file})`);
+    } else if (r.index) {
+      console.log(`${indentStr}├── (index) (${r.file})`);
+    } else if (r.children) {
+      console.log(`${indentStr}├── (layout) (${r.file})`);
+      printRouteTree(r.children, indent + 1);
+    }
   }
-
-  printRouteTree(routes);
 }

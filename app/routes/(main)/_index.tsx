@@ -10,7 +10,7 @@ export async function loader() {
   const researchResults = await db.query.researches.findMany({
     where: eq(researches.status, 2),
     orderBy: [desc(researches.created_at)],
-  })
+  });
 
   return { researches: researchResults };
 }
@@ -20,21 +20,25 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl p-2 mx-auto">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-2xl font-bold">リサーチ一覧</h2>
-        <Link to="/create" className="bg-amber-700 py-2 px-4 rounded-xl">
-          新しいリサーチを作成
-        </Link>
-      </div>
-      <div className="grid gap-4">
-        {researches.map((research) => {
+      <Link to={`/${researches[0].id}`} key={researches[0].id} className="relative flex border border-x-stone-500 border-b-stone-500">
+        {!!researches[0].thumbnail ? (
+          <img src={researches[0].thumbnail} alt={researches[0].title || ""} className="flex-1 aspect-video object-cover" />
+        ) : (
+          <div className="flex-1 aspect-video bg-stone-500" />
+        )}
+        <div className="absolute w-hull left-0 bottom-0 p-2">
+          <h3 className="m-2 font-bold wrap-anywhere">{researches[0].title}</h3>
+          <div className="text-stone-500 m-2 text-xs">作成: {researches[0].created_at ? timeAgo(researches[0].created_at) : null}</div>
+        </div>
+      </Link>
+      <div className="grid">
+        {researches.slice(1).map((research) => {
           return (
-            <Link to={`/${research.id}`} key={research.id} className="border border-stone-500 rounded-xl p-4 bg-stone-800">
-              <div className="flex justify-between items-start m-2">
-                <h3 className="font-bold wrap-anywhere">{research.title}</h3>
-              </div>
-              <div className="flex text-xs">
-                <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+            <Link to={`/${research.id}`} key={research.id} className="h-24 flex border border-x-stone-500 border-b-stone-500">
+              {!!research.thumbnail && <img src={research.thumbnail} alt={research.title || ""} className="aspect-square object-cover" />}
+              <div className="p-2">
+                <h3 className="m-2 font-bold wrap-anywhere">{research.title}</h3>
+                <div className="text-stone-500 m-2 text-xs">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
               </div>
             </Link>
           );
