@@ -1,15 +1,17 @@
 import React from "react";
 
-type MarkdownRendererProps = {
+export function MarkdownRenderer({
+  markdown,
+  images = [],
+}: {
   markdown: string;
   images?: Array<{
     url: string;
     alt: string | null;
     analysis: string | null;
+    sourceUrl?: string;
   }>;
-};
-
-export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProps) {
+}) {
   const processedMarkdown = markdown.replace(/\[(.*?)画像(\d+)(.*?)\]/g, (match, prefix, numStr, suffix) => {
     const index = parseInt(numStr) - 1;
     if (index < 0 || index >= images.length) return match;
@@ -94,6 +96,9 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
         const alt = imageMatch[1] || "";
         const src = imageMatch[2] || "";
 
+        const imageIndex = images.findIndex((img) => img.url === src);
+        const imageData = imageIndex >= 0 ? images[imageIndex] : null;
+
         const nextLine = i + 1 < lines.length ? lines[i + 1] : "";
         let caption = "";
 
@@ -104,8 +109,16 @@ export function MarkdownRenderer({ markdown, images = [] }: MarkdownRendererProp
 
         result.push(
           <figure key={`img-${i}`} className="my-6">
-            <img src={src} alt={alt} className=" mx-auto rounded-xl border border-stone-500 max-w-full" style={{ maxHeight: 500 }} />
+            <img src={src} alt={alt} className="mx-auto rounded-xl border border-stone-500 max-w-full" style={{ maxHeight: 500 }} />
             {caption && <figcaption className="text-center text-xs text-stone-400 mt-2">{caption}</figcaption>}
+            {imageData?.sourceUrl && (
+              <div className="text-center text-xs text-stone-500 mt-1">
+                出典:{" "}
+                <a href={imageData.sourceUrl} target="_blank" rel="noopener noreferrer">
+                  {new URL(imageData.sourceUrl).hostname}
+                </a>
+              </div>
+            )}
           </figure>
         );
         continue;

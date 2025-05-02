@@ -6,10 +6,11 @@ type ImageData = {
   url: string;
   alt?: string;
   analysis?: string;
+  sourceUrl: string; 
 };
 
 export class ImageProcessor {
-  async processArticleWithImages(articleText: string, images: ImageData[]): Promise<{content: string, firstImageUrl?: string}> {
+  async processArticleWithImages(articleText: string, images: ImageData[]): Promise<{ content: string; firstImageUrl?: string }> {
     const analyzedImages = await this.analyzeAllImages(images);
     const result = await this.createIntegratedArticle(articleText, analyzedImages);
 
@@ -89,43 +90,45 @@ export class ImageProcessor {
 
   private async createIntegratedArticle(articleText: string, images: ImageData[]): Promise<string> {
     const prompt = `
-      あなたはプロのニュース編集者です。テキスト記事と分析済みの画像があります。
-      これらを最適に統合し、簡潔なマークダウン形式で記事を作成してください。
+    あなたはプロのニュース編集者です。テキスト記事と分析済みの画像があります。
+    これらを最適に統合し、簡潔なマークダウン形式で記事を作成してください。
 
-      【記事本文】
-      ${articleText}
+    【記事本文】
+    ${articleText}
 
-      【利用可能な画像】
-      ${images
-        .map(
-          (img, index) => `[画像${index + 1}] ID: ${img.id}
-      説明: ${img.analysis || "説明なし"}
-      URL: ${img.url}
-      `
-        )
-        .join("\n\n")}
+    【利用可能な画像】
+    ${images
+      .map(
+        (img, index) => `[画像${index + 1}] ID: ${img.id}
+    説明: ${img.analysis || "説明なし"}
+    URL: ${img.url}
+    ソース: ${img.sourceUrl || "不明"}
+    `
+      )
+      .join("\n\n")}
 
-      【出力形式の制限】
-      以下のマークダウン要素のみを使用してください：
-      1. タイトル: # タイトル
-      2. 見出し: ## 見出し
-      3. サブ見出し: ### サブ見出し
-      4. 本文: 通常のテキスト（シンプルに記述）
-      5. 画像: ![代替テキスト](画像URL)
-      6. 画像キャプション: *キャプション* (画像の直後に配置)
-      7. 太字: **太字テキスト**
-      8. リンク: [テキスト](URL)
+    【出力形式の制限】
+    以下のマークダウン要素のみを使用してください：
+    1. タイトル: # タイトル
+    2. 見出し: ## 見出し
+    3. サブ見出し: ### サブ見出し
+    4. 本文: 通常のテキスト（シンプルに記述）
+    5. 画像: ![代替テキスト](画像URL)
+    6. 画像キャプション: *キャプション* (画像の直後に配置)
+    7. 太字: **太字テキスト**
+    8. リンク: [テキスト](URL)
 
-      【以下の要素は使用禁止】
-      - リスト（箇条書きや番号付きリスト）
-      - コードブロック
-      - 水平線
-      - 斜体（画像キャプションを除く）
-      - インラインコード
-      - HTMLタグ（figcaptionなど）
+    【以下の要素は使用禁止】
+    - リスト（箇条書きや番号付きリスト）
+    - コードブロック
+    - 水平線
+    - 斜体（画像キャプションを除く）
+    - インラインコード
+    - HTMLタグ（figcaptionなど）
 
-      元の記事の内容を尊重しながら、読みやすく整理された形式で再構成してください。段落は簡潔にまとめ、重要な情報に焦点を当ててください。
-      `;
+    元の記事の内容を尊重しながら、読みやすく整理された形式で再構成してください。段落は簡潔にまとめ、重要な情報に焦点を当ててください。
+    画像に関しては、キャプションに「（出典: URL）」の形式でソース情報も含めてください。
+    `;
 
     try {
       const { response } = await model.generateContent([prompt]);
