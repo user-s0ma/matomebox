@@ -101,23 +101,38 @@ export function MarkdownRenderer({
 
         const nextLine = i + 1 < lines.length ? lines[i + 1] : "";
         let caption = "";
+        let sourceUrl = "";
 
         if (nextLine.startsWith("*") && nextLine.endsWith("*")) {
-          caption = nextLine.slice(1, -1);
+          const fullCaption = nextLine.slice(1, -1);
+
+          const sourceMatch = fullCaption.match(/(.*?)（出典:\s*(https?:\/\/[^\s)]+)）$/);
+
+          if (sourceMatch) {
+            caption = sourceMatch[1].trim();
+            sourceUrl = sourceMatch[2].trim();
+          } else {
+            caption = fullCaption;
+          }
+
           i++;
         }
 
         result.push(
           <figure key={`img-${i}`} className="my-6">
             <img src={src} alt={alt} className="mx-auto rounded-xl border border-stone-500 max-w-full" style={{ maxHeight: 500 }} />
-            {caption && <figcaption className="text-center text-xs text-stone-400 mt-2">{caption}</figcaption>}
-            {imageData?.sourceUrl && (
-              <div className="text-center text-xs text-stone-500 mt-1">
-                出典:{" "}
-                <a href={imageData.sourceUrl} target="_blank" rel="noopener noreferrer">
-                  {new URL(imageData.sourceUrl).hostname}
-                </a>
-              </div>
+            {!!caption && (
+              <figcaption className="text-center text-xs mt-2">
+                <span className="text-stone-400">{caption}</span>
+                {!!sourceUrl && (
+                  <>
+                    <span className="text-stone-500 mx-1"> ・ 出典: </span>
+                    <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-xs">
+                      {new URL(sourceUrl).hostname}
+                    </a>
+                  </>
+                )}
+              </figcaption>
             )}
           </figure>
         );

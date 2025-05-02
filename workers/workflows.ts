@@ -1,10 +1,10 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { eq, and } from "drizzle-orm";
-import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
+import { researches, researchImages, researchSources, researchProgress, type ResearchImage, type ResearchSource } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
 import { model } from "@/lib/gemini";
 import { getBrowser, webSearch } from "@/lib/search/webSearch";
-import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT, DEEP_FINAL_REPORT_PROMPT } from "@/lib/prompts";
+import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT } from "@/lib/prompts";
 import { ImageProcessor } from "@/lib/search/imageProcessor";
 
 interface ResearchParams {
@@ -131,7 +131,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
                 await db.insert(researchImages).values({
                   research_id: id,
-                  source_id: sourceId, // ソースIDを設定
+                  source_id: sourceId,
                   url: img.url,
                   alt: img.alt || "",
                   analysis: img.analysis || "",
@@ -221,8 +221,20 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
                 if (nextProcessResult.processedImages && nextProcessResult.processedImages.length > 0) {
                   for (const img of nextProcessResult.processedImages.slice(0, 5)) {
+                    let sourceId = null;
+                    if (img.sourceUrl) {
+                      const sourceRecord = await db.query.researchSources.findFirst({
+                        where: and(eq(researchSources.research_id, id), eq(researchSources.url, img.sourceUrl)),
+                      });
+
+                      if (sourceRecord) {
+                        sourceId = sourceRecord.id;
+                      }
+                    }
+
                     await db.insert(researchImages).values({
                       research_id: id,
+                      source_id: sourceId,
                       url: img.url,
                       alt: img.alt || "",
                       analysis: img.analysis || "",
@@ -248,6 +260,24 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
           where: eq(researchImages.research_id, id),
         });
 
+        const imagesWithSource: any[] = [];
+        for (const img of images) {
+          let sourceUrl = "";
+          if (img.source_id) {
+            const sourceRecord = await db.query.researchSources.findFirst({
+              where: eq(researchSources.id, img.source_id),
+            });
+            if (sourceRecord) {
+              sourceUrl = sourceRecord.url;
+            }
+          }
+
+          imagesWithSource.push({
+            ...img,
+            sourceUrl,
+          });
+        }
+
         await db.insert(researchProgress).values({
           research_id: id,
           status_message: "最終レポートを生成中...",
@@ -265,7 +295,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
             timeout: "10 minutes",
           },
           async () => {
-            return await this.writeFinalReport(query, allLearnings, images);
+            return await this.writeFinalReport(query, allLearnings, imagesWithSource);
           }
         );
 
@@ -376,10 +406,9 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     const contentsWithImages = processedResults.map((result) => result.enhancedMarkdown);
 
     if (contentsWithImages.length === 0) {
-      console.warn(`検索クエリ「${query}」の結果が空です`);
       return {
-        learnings: ["検索結果が見つかりませんでした。"],
-        followUpQuestions: ["他のキーワードで検索すべきですか？"],
+        learnings: [`検索クエリ「${query}」の検索結果が見つかりませんでした。`],
+        followUpQuestions: [`${query}について、どのようなキーワードで検索するべきですか？`],
         processedImages: [],
       };
     }
@@ -487,7 +516,7 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
     const articleDraft = await this.generateArticleDraft(prompt, learnings);
 
     const imageProcessor = new ImageProcessor();
-    const { content: finalArticle, firstImageUrl } = await imageProcessor.processArticleWithImages(articleDraft, images);
+    const { content: finalArticle, firstImageUrl } = await imageProcessor.processArticleWithImages(articleDraft, images, prompt);
 
     return { content: finalArticle, category, firstImageUrl };
   }

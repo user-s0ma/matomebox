@@ -6,13 +6,13 @@ type ImageData = {
   url: string;
   alt?: string;
   analysis?: string;
-  sourceUrl: string; 
+  sourceUrl: string;
 };
 
 export class ImageProcessor {
-  async processArticleWithImages(articleText: string, images: ImageData[]): Promise<{ content: string; firstImageUrl?: string }> {
+  async processArticleWithImages(articleText: string, images: ImageData[], prompt: string): Promise<{ content: string; firstImageUrl?: string }> {
     const analyzedImages = await this.analyzeAllImages(images);
-    const result = await this.createIntegratedArticle(articleText, analyzedImages);
+    const result = await this.createIntegratedArticle(articleText, analyzedImages, prompt);
 
     const firstImageMatch = result.match(/!\[.*?\]\((.*?)\)/);
     const firstImageUrl = firstImageMatch ? firstImageMatch[1] : undefined;
@@ -39,7 +39,7 @@ export class ImageProcessor {
         const analysis = await this.analyzeImage(blob, res.headers.get("content-type"));
 
         const dimensions = imageSize(new Uint8Array(blob));
-        if (!dimensions || (dimensions.width < 200 && dimensions.height < 200)) {
+        if (!dimensions || (dimensions.width < 250 && dimensions.height < 250)) {
           continue;
         }
 
@@ -88,46 +88,39 @@ export class ImageProcessor {
     }
   }
 
-  private async createIntegratedArticle(articleText: string, images: ImageData[]): Promise<string> {
+  private async createIntegratedArticle(articleText: string, images: ImageData[], initialPrompt: string): Promise<string> {
     const prompt = `
-    あなたはプロのニュース編集者です。テキスト記事と分析済みの画像があります。
-    これらを最適に統合し、簡潔なマークダウン形式で記事を作成してください。
-
+    あなたはプロのニュース編集者です。以下のテキスト記事と分析済みの画像を最適に統合し、与えられた制限内で簡潔なマークダウン記事を作成してください。
+    
     【記事本文】
     ${articleText}
-
-    【利用可能な画像】
+    
+    【利用可能な画像】(最大4枚)
     ${images
       .map(
         (img, index) => `[画像${index + 1}] ID: ${img.id}
     説明: ${img.analysis || "説明なし"}
     URL: ${img.url}
-    ソース: ${img.sourceUrl || "不明"}
-    `
+    ソース: ${img.sourceUrl.replace(/^https?:\/\//, "") || "不明"}`
       )
       .join("\n\n")}
-
+    
     【出力形式の制限】
-    以下のマークダウン要素のみを使用してください：
-    1. タイトル: # タイトル
-    2. 見出し: ## 見出し
-    3. サブ見出し: ### サブ見出し
-    4. 本文: 通常のテキスト（シンプルに記述）
-    5. 画像: ![代替テキスト](画像URL)
-    6. 画像キャプション: *キャプション* (画像の直後に配置)
-    7. 太字: **太字テキスト**
-    8. リンク: [テキスト](URL)
-
-    【以下の要素は使用禁止】
-    - リスト（箇条書きや番号付きリスト）
-    - コードブロック
-    - 水平線
-    - 斜体（画像キャプションを除く）
-    - インラインコード
-    - HTMLタグ（figcaptionなど）
-
-    元の記事の内容を尊重しながら、読みやすく整理された形式で再構成してください。段落は簡潔にまとめ、重要な情報に焦点を当ててください。
-    画像に関しては、キャプションに「（出典: URL）」の形式でソース情報も含めてください。
+    使用可能なマークダウン要素のみを使ってください：
+    # タイトル  
+    ## 見出し  
+    ### サブ見出し  
+    通常テキスト  
+    ![代替テキスト](画像URL)  
+    *キャプション（出典: https://ソースURL）*  
+    **太字テキスト**  
+    [リンクテキスト](URL)  
+    
+    禁止事項：
+    リスト、コードブロック、水平線、斜体（キャプション除く）、インラインコード、HTMLタグ  
+    
+    アクセスできない、収集できなかったなど、
+    初期プロントの「${initialPrompt}」に直接関係しない情報はすべて省略し、重要なポイントを簡潔にまとめてください。
     `;
 
     try {
