@@ -20,7 +20,7 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <Link to={`/article/${researches[0].id}`} key={researches[0].id} className="relative flex border border-x-stone-500 border-b-stone-500">
+      <Link to={`/article/${researches[0].id}`} key={researches[0].id} className="relative flex border-b border-b-stone-500">
         {!!researches[0].thumbnail ? (
           <img src={researches[0].thumbnail} alt={researches[0].title || ""} className="flex-1 aspect-video object-cover object-top" />
         ) : (
@@ -34,11 +34,18 @@ export default function Home() {
       <div className="grid">
         {researches.slice(1).map((research) => {
           return (
-            <Link to={`/article/${research.id}`} key={research.id} className="h-40 flex border border-x-stone-500 border-b-stone-500">
-              {!!research.thumbnail && <img src={research.thumbnail} alt={research.title || ""} className="aspect-square object-cover" />}
+            <Link to={`/article/${research.id}`} key={research.id} className="h-30 flex border-b border-b-stone-500">
+              {research.thumbnail ? (
+                <img src={research.thumbnail} alt={research.title || ""} className="aspect-square object-cover" />
+              ) : (
+                <div className="aspect-square bg-stone-500" />
+              )}
               <div className="p-2">
-                <h3 className="m-2 font-bold wrap-anywhere">{research.title}</h3>
-                <div className="text-stone-500 m-2 text-xs">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+                <h3 className="m-2 font-bold line-clamp-3 wrap-anywhere">{research.title}</h3>
+                <div className="flex text-xs">
+                  <div className="m-2">カテゴリー: {research.category || "不明"}</div>
+                  <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+                </div>
               </div>
             </Link>
           );

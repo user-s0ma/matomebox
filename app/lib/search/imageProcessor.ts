@@ -95,7 +95,7 @@ export class ImageProcessor {
     【記事本文】
     ${articleText}
     
-    【利用可能な画像】(最大4枚)
+    【利用可能な画像】(最大3枚)
     ${images
       .map(
         (img, index) => `[画像${index + 1}] ID: ${img.id}

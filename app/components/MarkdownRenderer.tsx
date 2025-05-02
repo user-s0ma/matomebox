@@ -96,9 +96,6 @@ export function MarkdownRenderer({
         const alt = imageMatch[1] || "";
         const src = imageMatch[2] || "";
 
-        const imageIndex = images.findIndex((img) => img.url === src);
-        const imageData = imageIndex >= 0 ? images[imageIndex] : null;
-
         const nextLine = i + 1 < lines.length ? lines[i + 1] : "";
         let caption = "";
         let sourceUrl = "";
@@ -106,7 +103,7 @@ export function MarkdownRenderer({
         if (nextLine.startsWith("*") && nextLine.endsWith("*")) {
           const fullCaption = nextLine.slice(1, -1);
 
-          const sourceMatch = fullCaption.match(/(.*?)（出典:\s*(https?:\/\/[^\s)]+)）$/);
+          const sourceMatch = fullCaption.match(/(.*?)\s*[（(]出典[:：]\s*(https?:\/\/[^\s\)）]+)[\)）]$/);
 
           if (sourceMatch) {
             caption = sourceMatch[1].trim();
