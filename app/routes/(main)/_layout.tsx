@@ -11,7 +11,7 @@ export default function Layout() {
             <BookOpenText size={24} color="oklch(47.3% 0.137 46.201)" />
             <h1 className="text-xl font-bold">Nectニュース</h1>
           </Link>
-          <Link to="/dash/create" className="text-white bg-amber-700 py-1 px-2 rounded-xl">
+          <Link to="/dash" className="text-white bg-amber-700 py-1 px-2 rounded-xl">
             ダッシュボード
           </Link>
         </div>

@@ -1,6 +1,7 @@
 import type { Route } from "./+types/create";
 import { useState } from "react";
-import { useNavigate, useLoaderData } from "react-router";
+import { useNavigate, Link, useLoaderData } from "react-router";
+import { ChevronLeft } from "lucide-react";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -66,6 +67,12 @@ export default function CreatePage() {
 
   return (
     <div className="max-w-2xl p-2 mx-auto">
+      <div className="mb-6">
+        <Link to="/" className="text-amber-700 flex items-center">
+          <ChevronLeft size={20} />
+          リストに戻る
+        </Link>
+      </div>
       <h2 className="text-2xl font-bold mb-2">新しいリサーチの作成</h2>
       <form onSubmit={handleSubmit} className="">
         <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">

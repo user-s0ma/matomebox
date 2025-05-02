@@ -82,7 +82,7 @@ export default function Home() {
             <div key={research.id} className="border border-stone-500 rounded-xl p-4">
               <div className="flex justify-between items-start m-2">
                 <h3 className="text-xl font-bold">
-                  <Link to={`/dash/details/${research.id}`} className="wrap-anywhere">
+                  <Link to={`/dash/research/${research.id}`} className="wrap-anywhere">
                     {research.title || research.query}
                   </Link>
                 </h3>
