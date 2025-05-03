@@ -1,6 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { eq, and } from "drizzle-orm";
-import { researches, researchImages, researchSources, researchProgress, type ResearchImage, type ResearchSource } from "@/db/schema";
+import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
 import { model } from "@/lib/gemini";
 import { getBrowser, webSearch } from "@/lib/search/webSearch";

@@ -1,5 +1,5 @@
 import { readdirSync, statSync } from "node:fs";
-import { join, parse, resolve, relative, posix } from "node:path";
+import { join, parse, resolve, relative } from "node:path";
 import { route, layout, getAppDirectory, type RouteConfigEntry } from "@react-router/dev/routes";
 import { type RouteConfig } from "@react-router/dev/routes";
 
