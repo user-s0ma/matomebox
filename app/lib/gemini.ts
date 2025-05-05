@@ -1,13 +1,14 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const api_token = process.env.GEMINI_API_KEY!;
 const account_id = "424609b50dfe49b156a6ec4a85c9ae88";
 const gateway_name = "nectnews-ai";
 
-const genAI = new GoogleGenerativeAI(api_token);
-export const model = genAI.getGenerativeModel(
-  { model: "gemini-2.5-flash-preview-04-17" },
-  {
-    baseUrl: `https://gateway.ai.cloudflare.com/v1/${account_id}/${gateway_name}/google-ai-studio`,
-  }
-);
+export const ai = new GoogleGenAI({
+  apiKey: api_token,
+  httpOptions: { baseUrl: `https://gateway.ai.cloudflare.com/v1/${account_id}/${gateway_name}/google-ai-studio` },
+});
+const model = await ai.models.generateContent({
+  model: "gemini-2.5-flash-preview-04-17",
+  contents: 'Why is the sky blue?',
+});

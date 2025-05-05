@@ -2,7 +2,7 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { eq, and } from "drizzle-orm";
 import { researches, researchImages, researchSources, researchProgress } from "@/db/schema";
 import { getDrizzleClient } from "@/lib/db";
-import { model } from "@/lib/gemini";
+import { ai } from "@/lib/gemini";
 import { getBrowser, webSearch } from "@/lib/search/webSearch";
 import { DEEP_SEARCH_QUERIES_PROMPT, DEEP_PROCESS_RESULTS_PROMPT } from "@/lib/prompts";
 import { ImageProcessor } from "@/lib/search/imageProcessor";
@@ -354,11 +354,13 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
   }
 
   async generateSerpQueries(query: string, numQueries: number = 5, learnings?: string[]) {
-    const { response } = await model.generateContent([
-      DEEP_SEARCH_QUERIES_PROMPT() +
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-04-17",
+      contents:
+        DEEP_SEARCH_QUERIES_PROMPT() +
         `\n\n以下のテーマに関する検索クエリを${numQueries}個生成してください：\n${query}${learnings ? `\n\n参考情報：\n${learnings.join("\n")}` : ""}`,
-    ]);
-    const content = response.text();
+    });
+    const content = response.text || "";
 
     const lines = content.split("\n").filter((line) => line.trim() !== "");
     const queries = lines
@@ -416,10 +418,12 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
       };
     }
 
-    const { response } = await model.generateContent([
-      DEEP_PROCESS_RESULTS_PROMPT() + `以下の検索結果を分析してください：\n\n検索クエリ: ${query}\n\n検索結果:${contentsWithImages.join("\n\n---\n\n")}`,
-    ]);
-    const content = response.text();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-04-17",
+      contents:
+        DEEP_PROCESS_RESULTS_PROMPT() + `以下の検索結果を分析してください：\n\n検索クエリ: ${query}\n\n検索結果:${contentsWithImages.join("\n\n---\n\n")}`,
+    });
+    const content = response.text || "";
 
     const factSection = content.match(/##\s*報道価値のある事実[\s\S]*?(?=##|$)/) || [""];
     const questionSection = content.match(/##\s*フォローアップ質問[\s\S]*?(?=##|$)/) || [""];
@@ -451,7 +455,9 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
 
   async determineCategory(query: string, learnings: string[]): Promise<string> {
     try {
-      const categoryPrompt = `
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: `
         以下の記事トピックと収集した情報から、最も適切なカテゴリーを1つだけ選んでください。
     
         カテゴリー選択肢:
@@ -470,10 +476,9 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         ${learnings.slice(0, 5).join("\n")}
     
         回答は上記カテゴリーから1つだけ選び、カテゴリー名のみを返してください。
-        `;
-
-      const { response } = await model.generateContent([categoryPrompt]);
-      const category = response.text().trim();
+        `,
+      });
+      const category = response.text || "";
 
       const validCategories = ["国内", "国際", "経済", "エンタメ", "スポーツ", "IT", "ライフ", "その他"];
 
@@ -490,24 +495,24 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
   }
 
   async generateArticleDraft(prompt: string, learnings: string[]): Promise<string> {
-    const draftPrompt = `
-      あなたはプロのニュース記者です。以下の情報に基づいて「${prompt}」に関する記事の下書きを作成してください。
-      
-      【指示】
-      1. 「である・だ」調の報道文体を使用してください
-      2. 事実と具体的な数字を重視してください
-      3. 段落ごとに明確なトピックを設定してください
-      4. 各段落は独立して理解できるようにしてください
-      
-      【収集情報】
-      ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}
-      `;
-
     try {
-      const { response } = await model.generateContent([draftPrompt]);
-      const draft = response.text();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: `
+        あなたはプロのニュース記者です。以下の情報に基づいて「${prompt}」に関する記事の下書きを作成してください。
+        
+        【指示】
+        1. 「である・だ」調の報道文体を使用してください
+        2. 事実と具体的な数字を重視してください
+        3. 段落ごとに明確なトピックを設定してください
+        4. 各段落は独立して理解できるようにしてください
+        
+        【収集情報】
+        ${learnings.map((learning, index) => `${index + 1}. ${learning}`).join("\n")}
+        `,
+      });
 
-      return draft;
+      return response.text || "";
     } catch (error) {
       console.error("記事ドラフト生成エラー:", error);
       return learnings.join("\n\n");

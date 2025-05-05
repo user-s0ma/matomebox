@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.0.2",
-    "@google/generative-ai": "0.24.0",
+    "@google/genai": "0.12.0",
     "@react-router/node": "^7.5.0",
     "@tidbcloud/serverless": "0.2.0",
     "drizzle-orm": "^0.43.1",

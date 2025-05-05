@@ -103,7 +103,7 @@ export function MarkdownRenderer({
         if (nextLine.startsWith("*") && nextLine.endsWith("*")) {
           const fullCaption = nextLine.slice(1, -1);
 
-          const sourceMatch = fullCaption.match(/(.*?)\s*(https?:\/\/[^\s\)）]+)$/);
+          const sourceMatch = fullCaption.match(/(.*?)\s*[（(]出典[:：]\s*(https?:\/\/[^\)）]+)[\)）]$/);
 
           if (sourceMatch) {
             caption = sourceMatch[1].trim();

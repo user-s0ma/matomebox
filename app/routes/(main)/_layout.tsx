@@ -46,7 +46,7 @@ export default function Layout() {
       <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="h-12 w-full bg-stone-200 border-t border-stone-500 p-2">
+      <footer className="h-12 w-full flex bg-stone-200 border-t border-stone-500 p-2">
         <div className="m-auto text-xs text-stone-500">© {new Date().getFullYear()} NECTニュース</div>
       </footer>
       <ScrollRestoration />

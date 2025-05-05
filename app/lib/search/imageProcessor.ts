@@ -1,5 +1,5 @@
 import { imageSize } from "image-size";
-import { model } from "@/lib/gemini";
+import { ai } from "@/lib/gemini";
 
 type ImageData = {
   id: string;
@@ -57,31 +57,34 @@ export class ImageProcessor {
 
   private async analyzeImage(blob: ArrayBuffer, contentType?: string | null): Promise<string> {
     try {
-      const prompt = `
-        あなはプロの視覚分析専門家です。この画像を詳細に分析してください。
-
-        分析の際には、以下の点に注意してください：
-        1. 誰が（人物）、何が（物・事象）、どこで（場所）、どのように（状況）写っているか
-        2. 「この画像には〜」という表現は使わず、直接内容を説明する
-        3. HTMLタグは一切使用しない
-
-        分析結果は3段落で構成してください：
-        - 第1段落: 主要な被写体と状況の概要
-        - 第2段落: 細部の詳細
-        - 第3段落: 文脈における意味
-        `;
-
-      const { response } = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: Buffer.from(blob).toString("base64"),
-            mimeType: contentType || "application/octet-stream",
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: [
+          {
+            inlineData: {
+              data: Buffer.from(blob).toString("base64"),
+              mimeType: contentType || "application/octet-stream",
+            },
           },
-        },
-      ]);
+          {
+            text: `
+            あなはプロの視覚分析専門家です。この画像を詳細に分析してください。
 
-      return response.text();
+            分析の際には、以下の点に注意してください：
+            1. 誰が（人物）、何が（物・事象）、どこで（場所）、どのように（状況）写っているか
+            2. 「この画像には〜」という表現は使わず、直接内容を説明する
+            3. HTMLタグは一切使用しない
+
+            分析結果は3段落で構成してください：
+            - 第1段落: 主要な被写体と状況の概要
+            - 第2段落: 細部の詳細
+            - 第3段落: 文脈における意味
+            `,
+          },
+        ],
+      });
+
+      return response.text || "";
     } catch (error) {
       console.error(`画像分析に失敗しました: ${error}`);
       throw error;
@@ -89,43 +92,45 @@ export class ImageProcessor {
   }
 
   private async createIntegratedArticle(articleText: string, images: ImageData[], initialPrompt: string): Promise<string> {
-    const prompt = `
-    あなたはプロのニュース編集者です。以下のテキスト記事と分析済みの画像を最適に統合し、与えられた制限内で簡潔なマークダウン記事を作成してください。
-    
-    【記事本文】
-    ${articleText}
-    
-    【利用可能な画像】(最大3枚)
-    ${images
-      .map(
-        (img, index) => `[画像${index + 1}] ID: ${img.id}
-    説明: ${img.analysis || "説明なし"}
-    URL: ${img.url}
-    ソース: ${img.sourceUrl.replace(/^https?:\/\//, "") || "不明"}`
-      )
-      .join("\n\n")}
-    
-    【出力形式の制限】
-    使用可能なマークダウン要素のみを使ってください：
-    # タイトル  
-    ## 見出し  
-    ### サブ見出し  
-    通常テキスト  
-    ![代替テキスト](画像URL)  
-    *キャプション（出典: https://ソースURL）*  
-    **太字テキスト**  
-    [リンクテキスト](URL)  
-    
-    禁止事項：
-    リスト、コードブロック、水平線、斜体（キャプション除く）、インラインコード、HTMLタグ  
-    
-    アクセスできない、収集できなかったなど、
-    初期プロントの「${initialPrompt}」に直接関係しない情報はすべて省略し、重要なポイントを簡潔にまとめてください。
-    `;
-
     try {
-      const { response } = await model.generateContent([prompt]);
-      return response.text();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: `
+        あなたはプロのニュース編集者です。以下のテキスト記事と分析済みの画像を最適に統合し、与えられた制限内で簡潔なマークダウン記事を作成してください。
+        
+        【記事本文】
+        ${articleText}
+        
+        【利用可能な画像】(最大3枚)
+        ${images
+          .map(
+            (img, index) => `[画像${index + 1}] ID: ${img.id}
+        説明: ${img.analysis || "説明なし"}
+        URL: ${img.url}
+        ソース: ${img.sourceUrl.replace(/^https?:\/\//, "") || "不明"}`
+          )
+          .join("\n\n")}
+        
+        【出力形式の制限】
+        使用可能なマークダウン要素のみを使ってください：
+        # タイトル  
+        ## 見出し  
+        ### サブ見出し  
+        通常テキスト  
+        ![代替テキスト](画像URL)  
+        *キャプションをここに入れる（出典: https://ソースURL）*  
+        **太字テキスト**  
+        [リンクテキスト](URL)  
+        
+        禁止事項：
+        リスト、コードブロック、水平線、斜体（キャプション除く）、インラインコード、HTMLタグ  
+        
+        アクセスできない、収集できなかったなど、
+        初期プロントの「${initialPrompt}」に直接関係しない情報はすべて省略し、重要なポイントを簡潔にまとめてください。
+        `,
+      });
+
+      return response.text || "";
     } catch (error) {
       console.error("記事と画像の統合に失敗しました:", error);
 
