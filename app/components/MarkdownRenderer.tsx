@@ -38,7 +38,7 @@ export function MarkdownRenderer({
           currentParagraph = [];
         }
         result.push(
-          <h1 key={`h1-${i}`} className="text-3xl font-bold my-4">
+          <h1 key={`h1-${i}`} className="text-3xl font-sans font-bold my-2">
             {parseInline(line.slice(2))}
           </h1>
         );
@@ -56,7 +56,7 @@ export function MarkdownRenderer({
           currentParagraph = [];
         }
         result.push(
-          <h2 key={`h2-${i}`} className="text-2xl font-bold my-3">
+          <h2 key={`h2-${i}`} className="text-2xl font-sans font-bold my-2">
             {parseInline(line.slice(3))}
           </h2>
         );
@@ -74,7 +74,7 @@ export function MarkdownRenderer({
           currentParagraph = [];
         }
         result.push(
-          <h3 key={`h3-${i}`} className="text-xl font-bold my-2">
+          <h3 key={`h3-${i}`} className="text-xl font-sans font-bold my-2">
             {parseInline(line.slice(4))}
           </h3>
         );
@@ -103,7 +103,7 @@ export function MarkdownRenderer({
         if (nextLine.startsWith("*") && nextLine.endsWith("*")) {
           const fullCaption = nextLine.slice(1, -1);
 
-          const sourceMatch = fullCaption.match(/(.*?)\s*[（(]出典[:：]\s*(https?:\/\/[^\s\)）]+)[\)）]$/);
+          const sourceMatch = fullCaption.match(/(.*?)\s*(https?:\/\/[^\s\)）]+)$/);
 
           if (sourceMatch) {
             caption = sourceMatch[1].trim();
@@ -116,14 +116,13 @@ export function MarkdownRenderer({
         }
 
         result.push(
-          <figure key={`img-${i}`} className="my-6">
-            <img src={src} alt={alt} className="mx-auto rounded-xl border border-stone-500 max-w-full" style={{ maxHeight: 500 }} />
+          <figure key={`img-${i}`} className="my-4">
+            <img src={src} alt={alt} className="mx-auto max-w-full" style={{ maxHeight: 750 }} />
             {!!caption && (
               <figcaption className="text-center text-xs mt-2">
                 <span className="text-stone-400">{caption}</span>
                 {!!sourceUrl && (
                   <>
-                    <span className="text-stone-500 mx-1"> ・ 出典: </span>
                     <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-xs">
                       {new URL(sourceUrl).hostname}
                     </a>
@@ -211,5 +210,5 @@ export function MarkdownRenderer({
     return parts;
   }
 
-  return <div className="markdown-content wrap-anywhere">{parseMarkdown(processedMarkdown)}</div>;
+  return <div className="markdown-content wrap-anywhere font-serif">{parseMarkdown(processedMarkdown)}</div>;
 }

@@ -1,3 +1,4 @@
+import type { Route } from "./+types/article.$id";
 import { useState } from "react";
 import { Link, useLoaderData } from "react-router";
 import { eq } from "drizzle-orm";
@@ -6,7 +7,7 @@ import { getDrizzleClient } from "@/lib/db";
 import { timeAgo } from "@/lib/utils";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
-export async function loader({ params }: { params: { id: string } }) {
+export async function loader({ params }: Route.LoaderArgs) {
   const { id } = params;
 
   const db = getDrizzleClient();
@@ -84,7 +85,7 @@ export default function ResearchDetails() {
   const { research } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-3xl p-2 mx-auto">
+    <div className="max-w-2xl p-2 mx-auto">
       <div className="flex text-xs">
         <div className="m-2">カテゴリー: {research.category || "不明"}</div>
         <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>

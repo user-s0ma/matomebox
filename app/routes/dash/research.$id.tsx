@@ -1,3 +1,4 @@
+import type { Route } from "./+types/research.$id";
 import { useState } from "react";
 import { useNavigate, Link, useLoaderData } from "react-router";
 import { ChevronLeft, LoaderCircle, CircleCheck } from "lucide-react";
@@ -7,7 +8,7 @@ import { getDrizzleClient } from "@/lib/db";
 import { timeAgo } from "@/lib/utils";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
-export async function loader({ params }: { params: { id: string } }) {
+export async function loader({ params }: Route.LoaderArgs) {
   const { id } = params;
 
   const db = getDrizzleClient();
@@ -166,7 +167,7 @@ export default function ResearchDetails() {
   }
 
   return (
-    <div className="max-w-3xl p-2 mx-auto">
+    <div className="max-w-2xl p-2 mx-auto">
       <div className="mb-2">
         <Link to="/dash" className="text-amber-700 flex items-center">
           <ChevronLeft size={20} />

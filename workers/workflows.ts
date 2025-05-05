@@ -59,97 +59,19 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
         let totalQueriesCount = serpQueries.length;
         let processedQueriesCount = 0;
 
-        for (const serpQuery of serpQueries) {
-          try {
-            const browserInstance = await browser.getActiveBrowser();
+        await Promise.allSettled(
+          serpQueries.map(async (serpQuery) => {
+            try {
+              const browserInstance = await browser.getActiveBrowser();
 
-            await db.insert(researchProgress).values({
-              research_id: id,
-              status_message: `検索クエリ「${serpQuery.query}」を実行中...`,
-              progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
-            });
+              await db.insert(researchProgress).values({
+                research_id: id,
+                status_message: `検索クエリ「${serpQuery.query}」を実行中...`,
+                progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
+              });
 
-            const result = await step.do(
-              `[search]-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
-              {
-                retries: {
-                  limit: 1,
-                  delay: "10 seconds",
-                  backoff: "exponential",
-                },
-                timeout: "10 minutes",
-              },
-              async () => {
-                return await webSearch(browserInstance, serpQuery.query, 5);
-              }
-            );
-
-            for (const item of result) {
-              try {
-                const urlObj = new URL(item.url);
-                await db.insert(researchSources).values({
-                  research_id: id,
-                  url: item.url,
-                  domain: urlObj.hostname,
-                  title: item.title || "",
-                  description: item.description || "",
-                });
-              } catch (error) {
-                console.error(`URL解析エラー: ${item.url}`, error);
-              }
-            }
-
-            const { learnings, followUpQuestions, processedImages } = await step.do(
-              `[process-results]-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
-              {
-                retries: {
-                  limit: 1,
-                  delay: "10 seconds",
-                  backoff: "exponential",
-                },
-                timeout: "10 minutes",
-              },
-              async () => {
-                return await this.processSerpResult(serpQuery.query, result, Math.ceil(breadth / 2));
-              }
-            );
-
-            allLearnings = [...allLearnings, ...learnings];
-
-            if (processedImages && processedImages.length > 0) {
-              for (const img of processedImages.slice(0, 10)) {
-                let sourceId = null;
-                if (img.sourceUrl) {
-                  const sourceRecord = await db.query.researchSources.findFirst({
-                    where: and(eq(researchSources.research_id, id), eq(researchSources.url, img.sourceUrl)),
-                  });
-
-                  if (sourceRecord) {
-                    sourceId = sourceRecord.id;
-                  }
-                }
-
-                await db.insert(researchImages).values({
-                  research_id: id,
-                  source_id: sourceId,
-                  url: img.url,
-                  alt: img.alt || "",
-                  analysis: img.analysis || "",
-                });
-              }
-            }
-
-            processedQueriesCount++;
-
-            await db.insert(researchProgress).values({
-              research_id: id,
-              status_message: `検索の処理完了`,
-              progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
-            });
-
-            if (depth > 1 && followUpQuestions.length > 0) {
-              const nextQueries = await step.do(
-                `[generate-followup-queries]-${serpQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+              const result = await step.do(
+                `[search]-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
                 {
                   retries: {
                     limit: 1,
@@ -159,51 +81,76 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
                   timeout: "10 minutes",
                 },
                 async () => {
-                  return await this.generateSerpQueries(followUpQuestions.join("\n"), Math.ceil(breadth / 2), allLearnings);
+                  return await webSearch(browserInstance, serpQuery.query, 5);
                 }
               );
 
-              totalQueriesCount += nextQueries.length;
-
-              for (const nextQuery of nextQueries) {
-                await db.insert(researchProgress).values({
-                  research_id: id,
-                  status_message: `詳細検索「${nextQuery.query}」を実行中...`,
-                  progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
-                });
-
-                const nextResult = await step.do(
-                  `[deep-search]-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
-                  {
-                    retries: {
-                      limit: 1,
-                      delay: "10 seconds",
-                      backoff: "exponential",
-                    },
-                    timeout: "10 minutes",
-                  },
-                  async () => {
-                    return await webSearch(browserInstance, nextQuery.query, 3);
-                  }
-                );
-
-                for (const item of nextResult) {
-                  try {
-                    const urlObj = new URL(item.url);
-                    await db.insert(researchSources).values({
-                      research_id: id,
-                      url: item.url,
-                      domain: urlObj.hostname,
-                      title: item.title || "",
-                      description: item.description || "",
-                    });
-                  } catch (error) {
-                    console.error(`URL解析エラー: ${item.url}`, error);
-                  }
+              for (const item of result) {
+                try {
+                  const urlObj = new URL(item.url);
+                  await db.insert(researchSources).values({
+                    research_id: id,
+                    url: item.url,
+                    domain: urlObj.hostname,
+                    title: item.title || "",
+                    description: item.description || "",
+                  });
+                } catch (error) {
+                  console.error(`URL解析エラー: ${item.url}`, error);
                 }
+              }
 
-                const nextProcessResult = await step.do(
-                  `[deep-process]-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+              const { learnings, followUpQuestions, processedImages } = await step.do(
+                `[process-results]-${serpQuery.query.substring(0, 20).replace(/\s+/g, "-")}`,
+                {
+                  retries: {
+                    limit: 1,
+                    delay: "10 seconds",
+                    backoff: "exponential",
+                  },
+                  timeout: "10 minutes",
+                },
+                async () => {
+                  return await this.processSerpResult(serpQuery.query, result, Math.ceil(breadth / 2));
+                }
+              );
+
+              allLearnings = [...allLearnings, ...learnings];
+
+              if (processedImages && processedImages.length > 0) {
+                for (const img of processedImages.slice(0, 10)) {
+                  let sourceId = null;
+                  if (img.sourceUrl) {
+                    const sourceRecord = await db.query.researchSources.findFirst({
+                      where: and(eq(researchSources.research_id, id), eq(researchSources.url, img.sourceUrl)),
+                    });
+
+                    if (sourceRecord) {
+                      sourceId = sourceRecord.id;
+                    }
+                  }
+
+                  await db.insert(researchImages).values({
+                    research_id: id,
+                    source_id: sourceId,
+                    url: img.url,
+                    alt: img.alt || "",
+                    analysis: img.analysis || "",
+                  });
+                }
+              }
+
+              processedQueriesCount++;
+
+              await db.insert(researchProgress).values({
+                research_id: id,
+                status_message: `検索クエリ「${serpQuery.query}」の処理完了`,
+                progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
+              });
+
+              if (depth > 1 && followUpQuestions.length > 0) {
+                const nextQueries = await step.do(
+                  `[generate-followup-queries]-${serpQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
                   {
                     retries: {
                       limit: 1,
@@ -213,48 +160,104 @@ export class ResearchWorkflow extends WorkflowEntrypoint<Env, ResearchParams> {
                     timeout: "10 minutes",
                   },
                   async () => {
-                    return await this.processSerpResult(nextQuery.query, nextResult);
+                    return await this.generateSerpQueries(followUpQuestions.join("\n"), Math.ceil(breadth / 2), allLearnings);
                   }
                 );
 
-                allLearnings = [...allLearnings, ...nextProcessResult.learnings];
+                totalQueriesCount += nextQueries.length;
+                await Promise.allSettled(
+                  nextQueries.map(async (nextQuery) => {
+                    await db.insert(researchProgress).values({
+                      research_id: id,
+                      status_message: `詳細検索「${nextQuery.query}」を実行中...`,
+                      progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
+                    });
 
-                if (nextProcessResult.processedImages && nextProcessResult.processedImages.length > 0) {
-                  for (const img of nextProcessResult.processedImages.slice(0, 5)) {
-                    let sourceId = null;
-                    if (img.sourceUrl) {
-                      const sourceRecord = await db.query.researchSources.findFirst({
-                        where: and(eq(researchSources.research_id, id), eq(researchSources.url, img.sourceUrl)),
-                      });
+                    const nextResult = await step.do(
+                      `[deep-search]-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                      {
+                        retries: {
+                          limit: 1,
+                          delay: "10 seconds",
+                          backoff: "exponential",
+                        },
+                        timeout: "10 minutes",
+                      },
+                      async () => {
+                        return await webSearch(browserInstance, nextQuery.query, 3);
+                      }
+                    );
 
-                      if (sourceRecord) {
-                        sourceId = sourceRecord.id;
+                    for (const item of nextResult) {
+                      try {
+                        const urlObj = new URL(item.url);
+                        await db.insert(researchSources).values({
+                          research_id: id,
+                          url: item.url,
+                          domain: urlObj.hostname,
+                          title: item.title || "",
+                          description: item.description || "",
+                        });
+                      } catch (error) {
+                        console.error(`URL解析エラー: ${item.url}`, error);
                       }
                     }
 
-                    await db.insert(researchImages).values({
+                    const nextProcessResult = await step.do(
+                      `[deep-process]-${nextQuery.query.substring(0, 15).replace(/\s+/g, "-")}`,
+                      {
+                        retries: {
+                          limit: 1,
+                          delay: "10 seconds",
+                          backoff: "exponential",
+                        },
+                        timeout: "10 minutes",
+                      },
+                      async () => {
+                        return await this.processSerpResult(nextQuery.query, nextResult);
+                      }
+                    );
+
+                    allLearnings = [...allLearnings, ...nextProcessResult.learnings];
+
+                    if (nextProcessResult.processedImages && nextProcessResult.processedImages.length > 0) {
+                      for (const img of nextProcessResult.processedImages.slice(0, 5)) {
+                        let sourceId = null;
+                        if (img.sourceUrl) {
+                          const sourceRecord = await db.query.researchSources.findFirst({
+                            where: and(eq(researchSources.research_id, id), eq(researchSources.url, img.sourceUrl)),
+                          });
+
+                          if (sourceRecord) {
+                            sourceId = sourceRecord.id;
+                          }
+                        }
+
+                        await db.insert(researchImages).values({
+                          research_id: id,
+                          source_id: sourceId,
+                          url: img.url,
+                          alt: img.alt || "",
+                          analysis: img.analysis || "",
+                        });
+                      }
+                    }
+
+                    processedQueriesCount++;
+
+                    await db.insert(researchProgress).values({
                       research_id: id,
-                      source_id: sourceId,
-                      url: img.url,
-                      alt: img.alt || "",
-                      analysis: img.analysis || "",
+                      status_message: `詳細検索「${nextQuery.query}」の処理完了`,
+                      progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
                     });
-                  }
-                }
-
-                processedQueriesCount++;
-
-                await db.insert(researchProgress).values({
-                  research_id: id,
-                  status_message: `詳細検索の処理完了`,
-                  progress_percentage: Math.round((processedQueriesCount / totalQueriesCount) * 100),
-                });
+                  })
+                );
               }
+            } catch (error) {
+              console.error(`クエリ処理エラー: ${serpQuery.query}`, error);
             }
-          } catch (error) {
-            console.error(`クエリ処理エラー: ${serpQuery.query}`, error);
-          }
-        }
+          })
+        );
 
         const images = await db.query.researchImages.findMany({
           where: eq(researchImages.research_id, id),
