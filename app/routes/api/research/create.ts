@@ -9,13 +9,13 @@ const RATE_LIMIT = {
 };
 
 const VALIDATION = {
-  MAX_QUERY_LENGTH: 50, // クエリ最大長：100文字
+  MAX_QUERY_LENGTH: 50, // クエリ最大長：50文字
   MIN_DEPTH_BREADTH: 1, // 最小深さ・幅：1
-  MAX_DEPTH_BREADTH: 3, // 最大深さ・幅：3
+  MAX_DEPTH_BREADTH: 5, // 最大深さ・幅：3
 };
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const { query, depth, breadth } = (await request.json()) as any;
+  const { query, depth, breadth, type } = (await request.json()) as any;
 
   const queryFormat = query.replace("\n", " ");
   const depthNumber = parseInt(depth, 10);
@@ -36,6 +36,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     breadthNumber < VALIDATION.MIN_DEPTH_BREADTH ||
     breadthNumber > VALIDATION.MAX_DEPTH_BREADTH
   ) {
+    return new Response(JSON.stringify({ success: false, error: "深さと幅は1から5の整数である必要があります。" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (typeof type !== "string" || !["normal", "paper"].includes(type)) {
     return new Response(JSON.stringify({ success: false, error: "深さと幅は1から3の整数である必要があります。" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -80,6 +87,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         query: queryFormat,
         depth: depthNumber,
         breadth: breadthNumber,
+        type,
       },
     });
 

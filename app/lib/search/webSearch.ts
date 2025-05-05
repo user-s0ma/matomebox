@@ -56,21 +56,39 @@ export async function getBrowser(): Promise<ResearchBrowser> {
   return new ResearchBrowser();
 }
 
-async function performSearch(page: Page, query: string, limit: number): Promise<string[]> {
-  const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+async function performSearch(page: Page, type: string, query: string, limit: number): Promise<string[]> {
+  if (type === "normal") {
+    const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
 
-  await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector('article[data-testid="result"] a[data-testid="result-title-a"]', { timeout: 10000 });
+    await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector('article[data-testid="result"] a[data-testid="result-title-a"]', { timeout: 10000 });
 
-  const urls = await page.evaluate((max) => {
-    const anchors = Array.from(document.querySelectorAll('article[data-testid="result"] a[data-testid="result-title-a"]'));
-    return anchors
-      .map((a) => (a as HTMLAnchorElement).href)
-      .filter((h) => h.startsWith("http"))
-      .slice(0, max);
-  }, limit);
+    const urls = await page.evaluate((max) => {
+      const anchors = Array.from(document.querySelectorAll('article[data-testid="result"] a[data-testid="result-title-a"]'));
+      return anchors
+        .map((a) => (a as HTMLAnchorElement).href)
+        .filter((h) => h.startsWith("http"))
+        .slice(0, max);
+    }, limit);
 
-  return urls;
+    return urls;
+  } else if (type === "paper") {
+    const searchUrl = `https://scholar.google.com/scholar/?q=${encodeURIComponent(query)}`;
+    await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("div[data-did] h3 a", { timeout: 10000 });
+
+    const urls = await page.evaluate((max) => {
+      const anchors = Array.from(document.querySelectorAll("div[data-did] h3 a"));
+      return anchors
+        .map((a) => (a as HTMLAnchorElement).href)
+        .filter((h) => h.startsWith("http"))
+        .slice(0, max);
+    }, limit);
+
+    return urls;
+  }
+
+  return [];
 }
 
 async function extractContent(page: Page, url: string): Promise<SearchResult> {
@@ -237,12 +255,12 @@ async function extractContent(page: Page, url: string): Promise<SearchResult> {
   return { title, description, url, markdown, links, images };
 }
 
-export async function webSearch(browser: Browser, query: string, limit = 5): Promise<SearchResult[]> {
+export async function webSearch(browser: Browser, type: string, query: string, limit = 5): Promise<SearchResult[]> {
   let urls: string[];
   {
     const page = await browser.newPage();
     try {
-      urls = await performSearch(page, query, limit);
+      urls = await performSearch(page, type, query, limit);
     } finally {
       await page.close();
     }

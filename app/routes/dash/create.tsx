@@ -8,11 +8,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const query = url.searchParams.get("query");
   const depth = parseInt(url.searchParams.get("depth") || "2", 10);
   const breadth = parseInt(url.searchParams.get("breadth") || "3", 10);
+  const type = url.searchParams.get("type");
 
-  let results: { research: { query: string; depth: number; breadth: number } } | null = null;
+  let results: { research: { query: string; depth: number; breadth: number; type: string } } | null = null;
   if (query) {
     results = {
-      research: { query, depth: depth || 2, breadth: breadth || 3 },
+      research: { query, depth: depth || 2, breadth: breadth || 3, type: type || "normal" },
     };
   }
 
@@ -43,6 +44,7 @@ export default function CreatePage() {
           query: formData.get("query"),
           depth: formData.get("depth"),
           breadth: formData.get("breadth"),
+          type: formData.get("type"),
         }),
       });
 
@@ -75,7 +77,7 @@ export default function CreatePage() {
       </div>
       <h2 className="text-2xl font-bold mb-2">新しいリサーチの作成</h2>
       <form onSubmit={handleSubmit} className="">
-        <div className="relative bg-stone-700 border border-stone-500 rounded-xl overflow-hidden">
+        <div className="relative bg-stone-200 border border-stone-500 rounded-xl overflow-hidden">
           <textarea
             id="query"
             name="query"
@@ -89,38 +91,50 @@ export default function CreatePage() {
           <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-center rounded-b-xl">
             <div className="flex gap-2">
               <div className="flex items-center space-x-2">
-                <span className="text-xs">深さ:</span>
+                <span className="text-xs">深さ</span>
                 <select
                   id="depth"
                   name="depth"
-                  className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
-                  defaultValue={results?.research.depth.toString() || "2"}
+                  className="text-xs py-2 px-3 bg-stone-200 border border-stone-500 rounded-xl"
+                  defaultValue={results?.research.depth.toString() || "3"}
                 >
-                  <option value="1">浅い (非推奨)</option>
-                  <option value="2">中程度</option>
-                  <option value="3">深い (遅い)</option>
+                  <option value="2">浅い</option>
+                  <option value="3">中程度</option>
+                  <option value="5">深い</option>
                 </select>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs">トピック</span>
+                <span className="text-xs">広さ</span>
                 <select
                   id="breadth"
                   name="breadth"
-                  className="text-xs py-2 px-3 bg-stone-700 border border-stone-500 rounded-xl"
+                  className="text-xs py-2 px-3 bg-stone-200 border border-stone-500 rounded-xl"
                   defaultValue={results?.research.breadth.toString() || "3"}
                 >
-                  <option value="1">少しの</option>
+                  <option value="2">少し</option>
                   <option value="3">中程度</option>
-                  <option value="5">多くの</option>
+                  <option value="5">広く</option>
+                </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs">タイプ</span>
+                <select
+                  id="type"
+                  name="type"
+                  className="text-xs py-2 px-3 bg-stone-200 border border-stone-500 rounded-xl"
+                  defaultValue={results?.research.type.toString() || "normal"}
+                >
+                  <option value="normal">普通</option>
+                  <option value="paper">論文</option>
                 </select>
               </div>
             </div>
-            <button type="submit" className="text-xs bg-amber-700 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
+            <button type="submit" className="text-white text-xs bg-amber-700 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
               {isSubmitting ? "処理..." : "作成"}
             </button>
           </div>
         </div>
-        {error && <div className="mt-4 p-3 bg-red-500 bg-opacity-25 border border-red-700 rounded-xl text-red-100 text-sm">{error}</div>}
+        {error && <div className="mt-4 p-3 bg-red-500 bg-opacity-25 rounded-xl text-white text-sm">{error}</div>}
       </form>
     </div>
   );

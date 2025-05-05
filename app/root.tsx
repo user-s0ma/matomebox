@@ -2,8 +2,8 @@ import type { Route } from "./+types/root";
 import { isRouteErrorResponse, Links, Meta, Outlet } from "react-router";
 import "./app.css";
 
-const DEFAULT_TITLE = "Nectニュース - AIを活用したニュースまとめサイト";
-const DEFAULT_DESCRIPTION = "ニュースまとめサイト「Nectニュース」。幅広い分野のニュースをいち早くまとめます。";
+const DEFAULT_TITLE = "DeepNect - AIを活用したまとめサイト";
+const DEFAULT_DESCRIPTION = "まとめサイト「DeepNect」。幅広い分野の詳細をいち早くまとめます。";
 
 export default function App() {
   return (
@@ -41,7 +41,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <h1 className="text-xl mb-4 font-bold">{message}</h1>
       <p className="mb-4">{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto bg-stone-800 border border-stone-600 rounded-xl text-xs">
+        <pre className="w-full p-4 overflow-x-auto bg-white border border-stone-500 rounded-xl text-xs">
           <code>{stack}</code>
         </pre>
       )}

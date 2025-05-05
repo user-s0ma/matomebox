@@ -22,13 +22,13 @@ export default function Home() {
   function getStatusBadge(status: number) {
     switch (status) {
       case 1:
-        return <span className="px-2 py-1 bg-amber-900 bg-opacity-30 text-amber-300 border border-amber-700 text-xs rounded-xl">進行中</span>;
+        return <span className="px-2 py-1 bg-amber-700 bg-opacity-30 text-amber-300 border border-amber-300 text-xs rounded-xl">進行中</span>;
       case 2:
-        return <span className="px-2 py-1 bg-emerald-900 bg-opacity-30 text-emerald-300 border border-emerald-700 text-xs rounded-xl">完了</span>;
+        return <span className="px-2 py-1 bg-emerald-700 bg-opacity-30 text-emerald-300 border border-emerald-300 text-xs rounded-xl">完了</span>;
       case 3:
-        return <span className="px-2 py-1 bg-red-900 bg-opacity-30 text-red-300 border border-red-700 text-xs rounded-xl">エラー</span>;
+        return <span className="px-2 py-1 bg-red-700 bg-opacity-30 text-red-300 border border-red-300 text-xs rounded-xl">エラー</span>;
       default:
-        return <span className="px-2 py-1 bg-stone-800 bg-opacity-30 text-stone-300 border border-stone-600 text-xs rounded-xl">不明</span>;
+        return <span className="px-2 py-1 bg-stone-700 bg-opacity-30 text-stone-300 border border-stone-300 text-xs rounded-xl">不明</span>;
     }
   }
 
@@ -72,7 +72,7 @@ export default function Home() {
     <div className="max-w-2xl p-2 mx-auto">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-2xl font-bold">リサーチ一覧</h2>
-        <Link to="/dash/create" className="bg-amber-700 py-2 px-4 rounded-xl">
+        <Link to="/dash/create" className="text-white bg-amber-700 py-2 px-4 rounded-xl">
           新しいリサーチを作成
         </Link>
       </div>

@@ -8,7 +8,3 @@ export const ai = new GoogleGenAI({
   apiKey: api_token,
   httpOptions: { baseUrl: `https://gateway.ai.cloudflare.com/v1/${account_id}/${gateway_name}/google-ai-studio` },
 });
-const model = await ai.models.generateContent({
-  model: "gemini-2.5-flash-preview-04-17",
-  contents: 'Why is the sky blue?',
-});

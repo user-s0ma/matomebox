@@ -70,7 +70,7 @@ function DomainList({ urls }: { urls: string[] }) {
               to={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2 py-1 bg-stone-300 hover:bg-stone-500 rounded-xl text-xs border border-stone-500 transition-colors"
+              className="px-2 py-1 bg-stone-200 hover:bg-stone-500 rounded-xl text-xs border border-stone-500 transition-colors"
             >
               {extractDomain(url)}
             </Link>

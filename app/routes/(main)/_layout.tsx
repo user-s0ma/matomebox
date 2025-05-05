@@ -9,8 +9,8 @@ export default function Layout() {
       <header className="h-12 bg-stone-200 border-b border-stone-500 p-2">
         <div className="mx-auto flex justify-between items-center">
           <Link to="/" className="flex items-center font-bold">
+            <span className="text-xl text-stone-500 italic mr-1">DEEP </span>
             <span className="text-xl">NECT</span>
-            <span className="text-xl text-stone-500 italic">ニュース</span>
           </Link>
           <Link to="/dash" className="text-white bg-amber-700 py-1 px-2 rounded-xl">
             ダッシュボード
@@ -47,7 +47,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="h-12 w-full flex bg-stone-200 border-t border-stone-500 p-2">
-        <div className="m-auto text-xs text-stone-500">© {new Date().getFullYear()} NECTニュース</div>
+      <div className="m-auto text-xs text-stone-500">© {new Date().getFullYear()} DEEP NECT</div>
       </footer>
       <ScrollRestoration />
       <Scripts />

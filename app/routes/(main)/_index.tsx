@@ -34,7 +34,7 @@ export default function Home() {
       <div className="grid">
         {researches.slice(1).map((research) => {
           return (
-            <Link to={`/article/${research.id}`} key={research.id} className="h-30 p-2 flex border-b border-b-stone-500">
+            <Link to={`/article/${research.id}`} key={research.id} className="h-30 p-2 flex justify-between border-b border-b-stone-500">
               <div className="p-2">
                 <h3 className="mx-2 font-bold line-clamp-2 wrap-anywhere">{research.title}</h3>
                 <div className="flex text-xs">
@@ -42,9 +42,7 @@ export default function Home() {
                   <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
                 </div>
               </div>
-              {!!research.thumbnail && (
-                <img src={research.thumbnail} alt={research.title || ""} className="aspect-square object-cover" />
-              )}
+              {!!research.thumbnail && <img src={research.thumbnail} alt={research.title || ""} className="aspect-square object-cover" />}
             </Link>
           );
         })}

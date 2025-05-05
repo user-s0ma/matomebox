@@ -96,7 +96,7 @@ export class ImageProcessor {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-04-17",
         contents: `
-        あなたはプロのニュース編集者です。以下のテキスト記事と分析済みの画像を最適に統合し、与えられた制限内で簡潔なマークダウン記事を作成してください。
+        あなたはプロの記事編集者です。以下のテキスト記事と分析済みの画像を最適に統合し、与えられた制限内で簡潔なマークダウン記事を作成してください。
         
         【記事本文】
         ${articleText}

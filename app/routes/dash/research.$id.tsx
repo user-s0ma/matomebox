@@ -67,7 +67,7 @@ function ProgressDetails({ progressHistory, status }: { progressHistory: Researc
         <h3>{isOpen ? "ステップを閉じる" : "ステップを開く"}</h3>
       </button>
       {isOpen && (
-        <div className="bg-stone-800 border border-stone-500 p-2 rounded-xl mt-4">
+        <div className="bg-stone-200 border border-stone-500 p-2 rounded-xl mt-4">
           <ul className="space-y-2">
             {progressHistory.map((item, index) => (
               <li key={index} className="border-b border-stone-500 pb-2 text-xs">
@@ -114,7 +114,7 @@ function DomainList({ urls }: { urls: string[] }) {
               to={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2 py-1 bg-stone-700 hover:bg-stone-500 rounded-xl text-xs border border-stone-500 transition-colors"
+              className="px-2 py-1 bg-stone-200 hover:bg-stone-500 rounded-xl text-xs border border-stone-500 transition-colors"
             >
               {extractDomain(url)}
             </Link>
@@ -128,19 +128,6 @@ function DomainList({ urls }: { urls: string[] }) {
 export default function ResearchDetails() {
   const { research } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-
-  function getStatusBadge(status: number) {
-    switch (status) {
-      case 1:
-        return <span className="px-2 py-1 bg-amber-900 bg-opacity-30 text-amber-300 border border-amber-700 text-xs rounded-xl">進行中</span>;
-      case 2:
-        return <span className="px-2 py-1 bg-emerald-900 bg-opacity-30 text-emerald-300 border border-emerald-700 text-xs rounded-xl">完了</span>;
-      case 3:
-        return <span className="px-2 py-1 bg-red-900 bg-opacity-30 text-red-300 border border-red-700 text-xs rounded-xl">エラー</span>;
-      default:
-        return <span className="px-2 py-1 bg-stone-800 bg-opacity-30 text-stone-300 border border-stone-500 text-xs rounded-xl">不明</span>;
-    }
-  }
 
   async function handleDelete(id: string) {
     if (!confirm("このリサーチを削除してもよろしいですか？")) {
@@ -174,12 +161,9 @@ export default function ResearchDetails() {
           リストに戻る
         </Link>
       </div>
-      <div className="flex justify-between items-start mb-4">
-        <h2 className="text-2xl font-bold wrap-anywhere">{research.query}</h2>
-        <div className="shrink-0">{getStatusBadge(research.status)}</div>
-      </div>
+      <h2 className="text-2xl font-bold wrap-anywhere">{research.query}</h2>
       <div className="flex text-xs">
-      <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
+        <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
         <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
       </div>
       <div className="mb-2">
@@ -189,7 +173,7 @@ export default function ResearchDetails() {
           <div>トピック: {research.breadth}</div>
         </div>
         <h3 className="text-xl font-bold m-2">進捗</h3>
-        <div className="p-4 bg-stone-700 opacity-50 rounded-xl flex items-center">
+        <div className="p-4 bg-stone-200 border border-stone-500 rounded-xl flex items-center">
           {research.status !== 1 ? (
             <div className="mr-4">
               <CircleCheck size={20} />
@@ -199,7 +183,7 @@ export default function ResearchDetails() {
               <LoaderCircle size={20} />
             </div>
           )}
-          <div className="w-full bg-stone-800 h-2 rounded-full">
+          <div className="w-full bg-white h-2 rounded-full">
             <div
               className="bg-amber-700 h-2 rounded-full transition-all duration-500 ease-in-out"
               style={{ width: `${Math.min(research.progress || 0, 100)}%` }}
