@@ -67,7 +67,7 @@ function ProgressDetails({ progressHistory, status }: { progressHistory: Researc
         <h3>{isOpen ? "ステップを閉じる" : "ステップを開く"}</h3>
       </button>
       {isOpen && (
-        <div className="bg-stone-200 border border-stone-500 p-2 rounded-xl">
+        <div className="border border-stone-500 p-2 rounded-xl">
           <ul className="space-y-2">
             {progressHistory.map((item, index) => (
               <li key={index} className="border-b border-stone-500 pb-2 text-xs">
@@ -154,58 +154,46 @@ export default function ResearchDetails() {
   }
 
   return (
-    <div className="max-w-2xl p-2 mx-auto">
-      <div className="mb-2">
-        <Link to="/" className="text-amber-700 flex items-center">
-          <ChevronLeft size={20} />
-          リストに戻る
-        </Link>
-      </div>
-      <h2 className="text-2xl font-bold wrap-anywhere">{research.query}</h2>
-      <div className="flex text-xs">
-        <div className="mx-2">カテゴリー: {research.category || "不明"}</div>
-        <div className="text-stone-500 mx-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
-      </div>
-      <div className="mb-2">
-        <h3 className="text-xl font-bold m-2">パラメータ</h3>
-        <div className="flex justify-evenly bg-stone-200 border border-stone-500 rounded-xl p-4">
-          <div>深さ: {research.depth}</div>
-          <div>広さ: {research.breadth}</div>
+    <main className="flex-1">
+      <div className="max-w-2xl p-2 mx-auto">
+        <div className="mb-2">
+          <Link to="/" className="text-amber-700 flex items-center">
+            <ChevronLeft size={20} />
+            リストに戻る
+          </Link>
         </div>
-        <h3 className="text-xl font-bold m-2">進捗</h3>
-        <div className="p-4 bg-stone-200 border border-stone-500 rounded-xl flex items-center">
-          {research.status !== 1 ? (
-            <div className="mr-4">
-              <CircleCheck size={20} />
-            </div>
-          ) : (
-            <div className="animate-spin mr-4">
-              <LoaderCircle size={20} />
-            </div>
-          )}
-          <div className="w-full bg-white h-2 rounded-full">
-            <div
-              className="bg-amber-700 h-2 rounded-full transition-all duration-500 ease-in-out"
-              style={{ width: `${Math.min(research.progress || 0, 100)}%` }}
-            ></div>
-          </div>
+        <h2 className="text-2xl font-bold wrap-anywhere">{research.query}</h2>
+        <div className="flex text-xs space-x-2">
+          <div className="">カテゴリー: {research.category || "不明"}</div>
+          <div className="text-stone-500">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
         </div>
         <ProgressDetails progressHistory={research.progressHistory} status={research.status} />
+        <div className="flex flex-col">
+          {research.status === 1 ? (
+            <div className="p-4 border border-stone-500 rounded-xl flex items-center">
+              <div className="animate-spin mr-4">
+                <LoaderCircle size={20} />
+              </div>
+              <div className="w-full bg-white h-2 rounded-full">
+                <div
+                  className="bg-amber-700 h-2 rounded-full transition-all duration-500 ease-in-out"
+                  style={{ width: `${Math.min(research.progress || 0, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-stone-500 rounded-xl p-4">
+              <MarkdownRenderer markdown={research.content} images={research.images} />
+              <DomainList urls={research.urls} />
+            </div>
+          )}
+        </div>
+        <div className="flex space-x-2">
+          <button onClick={() => handleDelete(research.id)} className="text-red-500">
+            削除
+          </button>
+        </div>
       </div>
-      <div className="mb-2">
-        <h3 className="text-xl font-bold mb-2">リサーチレポート</h3>
-        {research.status !== 1 && (
-          <div className="border border-stone-500 rounded-xl p-4">
-            <MarkdownRenderer markdown={research.content} images={research.images} />
-            <DomainList urls={research.urls} />
-          </div>
-        )}
-      </div>
-      <div className="flex space-x-2">
-        <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs">
-          削除
-        </button>
-      </div>
-    </div>
+    </main>
   );
 }

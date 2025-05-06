@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLoaderData } from "react-router";
 import { desc } from "drizzle-orm";
 import { researches } from "@/db/schema";
@@ -10,6 +11,7 @@ export async function loader() {
 
   const researchResults = await db.query.researches.findMany({
     orderBy: [desc(researches.created_at)],
+    limit: 10
   });
 
   return { researches: researchResults };
@@ -18,6 +20,8 @@ export async function loader() {
 export default function Home() {
   const { researches } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function getStatusBadge(status: number) {
     switch (status) {
@@ -32,73 +36,128 @@ export default function Home() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("このリサーチを削除してもよろしいですか？")) {
-      return;
-    }
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
     try {
-      const response = await fetch("/api/research/delete", {
+      const response = await fetch("/api/research/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({
+          query: formData.get("query"),
+          depth: formData.get("depth"),
+          breadth: formData.get("breadth"),
+          type: formData.get("type"),
+        }),
       });
+      const data: any = await response.json();
 
       if (!response.ok) {
-        throw new Error("リサーチの削除に失敗しました");
+        let errorMessage = "リサーチの作成に失敗しました";
+        if (data && data.error) {
+          errorMessage = data.error;
+        } else if (response.status === 429) {
+          errorMessage = "レート制限を超えました。しばらく待ってから再試行してください。";
+        }
+        throw new Error(errorMessage);
       }
 
-      navigate(0);
+      navigate(`/research/${data.id}`);
     } catch (error) {
-      console.error("Error deleting research:", error);
+      console.error("Error creating research:", error);
+      setError(error instanceof Error ? error.message : "リサーチの作成に失敗しました");
+      setIsSubmitting(false);
     }
   }
 
-  if (researches.length === 0) {
-    return (
-      <div className="p-2 text-center">
-        <h2 className="text-2xl font-bold mb-2">リサーチ一覧</h2>
-        <p className="mb-4">リサーチがまだありません。</p>
-        <Link to="/create" className="bg-amber-700 py-2 px-4 rounded-xl">
-          新しいリサーチを作成
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl p-2 mx-auto">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-2xl font-bold">リサーチ一覧</h2>
-        <Link to="/create" className="text-white bg-amber-700 py-2 px-4 rounded-xl">
-          新しいリサーチを作成
-        </Link>
+    <main
+      className="flex-1 relative overflow-hidden"
+      style={{
+        backgroundImage: `radial-gradient(rgba(0, 0, 0, 0.2) 2px, transparent 3px)`,
+        backgroundSize: `40px 40px`,
+      }}
+    >
+      <div className="absolute top-0 left-0 flex flex-col m-4">
+        <div className="flex space-x-4 space-y-4">
+          <div className="h-[10dvh] w-[10dvh] rounded-[25%] rounded-br-[100%] bg-blue-600"></div>
+          <div className="h-[10dvh] w-[10dvh] rounded-full rounded-bl-none bg-red-400"></div>
+          <div className="h-[10dvh] w-[10dvh] rounded-full rounded-b-none rounded-br-none bg-yellow-400"></div>
+        </div>
+        <div className="flex space-x-4 space-y-4">
+          <div className="h-[10dvh] w-[10dvh] rounded-[25%] rounded-tl-none rounded-br-none bg-violet-400"></div>
+          <div className="h-[10dvh] w-[10dvh] rounded-full bg-orange-400"></div>
+        </div>
       </div>
-      <div className="grid gap-4">
-        {researches.map((research) => {
-          return (
-            <div key={research.id} className="border border-stone-500 rounded-xl p-4">
-              <div className="flex justify-between items-start m-2">
-                <h3 className="text-xl font-bold">
-                  <Link to={`/research/${research.id}`} className="wrap-anywhere">
-                    {research.title || research.query}
-                  </Link>
-                </h3>
-                <div className="shrink-0">{getStatusBadge(research.status)}</div>
+      <div className="max-w-2xl p-2 mx-auto relative flex flex-col z-10">
+        <h2 className="p-2 mx-auto mt-[30dvh] text-2xl font-bold font-serif">こんにちは、今日はなにをしますか？</h2>
+        <form onSubmit={handleSubmit} className="p-2 mb-[20dvh]">
+          <div className="relative bg-white border border-stone-500 rounded-xl overflow-hidden">
+            <textarea
+              id="query"
+              name="query"
+              rows={4}
+              className="w-full h-full p-4 pb-12 relative resize-none"
+              placeholder="リサーチしたいトピックの単語を入力してください"
+              defaultValue={""}
+              maxLength={50}
+              required
+            />
+            <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-center rounded-b-xl">
+              <div className="flex gap-2">
+                <div className="flex items-center">
+                  <span className="p-2 text-xs">深さ</span>
+                  <select id="depth" name="depth" className="p-2 text-xs rounded-xl" defaultValue={"3"}>
+                    <option value="2">浅い</option>
+                    <option value="3">中程度</option>
+                    <option value="5">深い</option>
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <span className="p-2 text-xs">広さ</span>
+                  <select id="breadth" name="breadth" className="p-2 text-xs rounded-xl" defaultValue={"3"}>
+                    <option value="2">少し</option>
+                    <option value="3">中程度</option>
+                    <option value="5">広く</option>
+                  </select>
+                </div>
               </div>
-              <div className="flex text-xs">
-                <div className="m-2">カテゴリー: {research.category || "不明"}</div>
-                <div className="text-stone-500 m-2">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
-              </div>
-              <button onClick={() => handleDelete(research.id)} className="text-red-500 text-xs m-2">
-                削除
+              <button type="submit" className="text-white text-xs bg-amber-700 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
+                {isSubmitting ? "処理..." : "作成"}
               </button>
             </div>
-          );
-        })}
+          </div>
+          {error && <div className="mt-4 p-3 bg-red-500 bg-opacity-25 rounded-xl text-white text-sm">{error}</div>}
+        </form>
+        <div className="p-2 grid grid-cols-2 gap-4">
+          {researches.map((research) => {
+            return (
+              <Link
+                to={`/research/${research.id}`}
+                key={research.id}
+                className="flex flex-col aspect-square bg-white border border-stone-500 rounded-xl overflow-hidden bg-cover bg-center"
+                style={{ backgroundImage: `url(${research.thumbnail})` }}
+              >
+                <div className="shrink-0 m-2">{getStatusBadge(research.status)}</div>
+                <h3 className="p-2 flex flex-col flex-1 justify-end text-white bg-linear-to-t from-black to-transparent">
+                  <div className="font-bold wrap-anywhere line-clamp-2">{research.title || research.query}</div>
+                  <div className="flex text-xs space-x-2">
+                    <div className="">カテゴリー: {research.category || "不明"}</div>
+                    <div className="text-stone-500">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+                  </div>
+                </h3>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
