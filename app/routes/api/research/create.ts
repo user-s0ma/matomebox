@@ -15,7 +15,7 @@ const VALIDATION = {
 };
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const { query, depth, breadth, type } = (await request.json()) as any;
+  const { query, depth, breadth } = (await request.json()) as any;
 
   const queryFormat = query.replace("\n", " ");
   const depthNumber = parseInt(depth, 10);
@@ -37,13 +37,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     breadthNumber > VALIDATION.MAX_DEPTH_BREADTH
   ) {
     return new Response(JSON.stringify({ success: false, error: "深さと幅は1から5の整数である必要があります。" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  if (typeof type !== "string" || !["normal", "paper"].includes(type)) {
-    return new Response(JSON.stringify({ success: false, error: "深さと幅は1から3の整数である必要があります。" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
@@ -87,7 +80,6 @@ export async function action({ request, context }: Route.ActionArgs) {
         query: queryFormat,
         depth: depthNumber,
         breadth: breadthNumber,
-        type,
       },
     });
 

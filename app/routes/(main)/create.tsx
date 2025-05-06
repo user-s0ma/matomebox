@@ -8,12 +8,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const query = url.searchParams.get("query");
   const depth = parseInt(url.searchParams.get("depth") || "2", 10);
   const breadth = parseInt(url.searchParams.get("breadth") || "3", 10);
-  const type = url.searchParams.get("type");
 
-  let results: { research: { query: string; depth: number; breadth: number; type: string } } | null = null;
+  let results: { research: { query: string; depth: number; breadth: number } } | null = null;
   if (query) {
     results = {
-      research: { query, depth: depth || 2, breadth: breadth || 3, type: type || "normal" },
+      research: { query, depth: depth || 3, breadth: breadth || 3 },
     };
   }
 
@@ -59,7 +58,7 @@ export default function CreatePage() {
         throw new Error(errorMessage);
       }
 
-      navigate("/dash");
+      navigate("/");
     } catch (error) {
       console.error("Error creating research:", error);
       setError(error instanceof Error ? error.message : "リサーチの作成に失敗しました");
@@ -114,18 +113,6 @@ export default function CreatePage() {
                   <option value="2">少し</option>
                   <option value="3">中程度</option>
                   <option value="5">広く</option>
-                </select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs">タイプ</span>
-                <select
-                  id="type"
-                  name="type"
-                  className="text-xs py-2 px-3 bg-stone-200 border border-stone-500 rounded-xl"
-                  defaultValue={results?.research.type.toString() || "normal"}
-                >
-                  <option value="normal">普通</option>
-                  <option value="paper">論文</option>
                 </select>
               </div>
             </div>

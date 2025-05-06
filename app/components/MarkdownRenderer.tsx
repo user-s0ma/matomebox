@@ -210,5 +210,5 @@ export function MarkdownRenderer({
     return parts;
   }
 
-  return <div className="markdown-content wrap-anywhere font-serif">{parseMarkdown(processedMarkdown)}</div>;
+  return <div className="markdown-content wrap-anywhere">{parseMarkdown(processedMarkdown)}</div>;
 }

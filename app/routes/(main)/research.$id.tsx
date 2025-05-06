@@ -67,7 +67,7 @@ function ProgressDetails({ progressHistory, status }: { progressHistory: Researc
         <h3>{isOpen ? "ステップを閉じる" : "ステップを開く"}</h3>
       </button>
       {isOpen && (
-        <div className="bg-stone-200 border border-stone-500 p-2 rounded-xl mt-4">
+        <div className="bg-stone-200 border border-stone-500 p-2 rounded-xl">
           <ul className="space-y-2">
             {progressHistory.map((item, index) => (
               <li key={index} className="border-b border-stone-500 pb-2 text-xs">
@@ -156,7 +156,7 @@ export default function ResearchDetails() {
   return (
     <div className="max-w-2xl p-2 mx-auto">
       <div className="mb-2">
-        <Link to="/dash" className="text-amber-700 flex items-center">
+        <Link to="/" className="text-amber-700 flex items-center">
           <ChevronLeft size={20} />
           リストに戻る
         </Link>
@@ -168,9 +168,9 @@ export default function ResearchDetails() {
       </div>
       <div className="mb-2">
         <h3 className="text-xl font-bold m-2">パラメータ</h3>
-        <div className="grid grid-cols-2 border border-stone-500 rounded-xl p-4">
+        <div className="flex justify-evenly bg-stone-200 border border-stone-500 rounded-xl p-4">
           <div>深さ: {research.depth}</div>
-          <div>トピック: {research.breadth}</div>
+          <div>広さ: {research.breadth}</div>
         </div>
         <h3 className="text-xl font-bold m-2">進捗</h3>
         <div className="p-4 bg-stone-200 border border-stone-500 rounded-xl flex items-center">
