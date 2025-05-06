@@ -11,7 +11,7 @@ const RATE_LIMIT = {
 const VALIDATION = {
   MAX_QUERY_LENGTH: 50, // クエリ最大長：50文字
   MIN_DEPTH_BREADTH: 1, // 最小深さ・幅：1
-  MAX_DEPTH_BREADTH: 5, // 最大深さ・幅：3
+  MAX_DEPTH_BREADTH: 5, // 最大深さ・幅：5
 };
 
 export async function action({ request, context }: Route.ActionArgs) {

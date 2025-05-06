@@ -54,8 +54,8 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { research: processedResearch };
 }
 
-function ProgressDetails({ progressHistory, status }: { progressHistory: ResearchProgress[]; status: number }) {
-  const [isOpen, setIsOpen] = useState(status === 1);
+function ProgressDetails({ progressHistory }: { progressHistory: ResearchProgress[]; }) {
+  const [isOpen, setIsOpen] = useState(false);
 
   if (!progressHistory || progressHistory.length === 0) {
     return null;
@@ -63,7 +63,7 @@ function ProgressDetails({ progressHistory, status }: { progressHistory: Researc
 
   return (
     <div>
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-amber-700">
+      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center mb-2 gap-2 text-amber-700">
         <h3>{isOpen ? "ステップを閉じる" : "ステップを開く"}</h3>
       </button>
       {isOpen && (
@@ -164,17 +164,17 @@ export default function ResearchDetails() {
         </div>
         <h2 className="text-2xl font-bold wrap-anywhere">{research.query}</h2>
         <div className="flex text-xs space-x-2">
-          <div className="">カテゴリー: {research.category || "不明"}</div>
-          <div className="text-stone-500">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+          <div className="">{research.category || "不明"}</div>
+          <div className="text-stone-500">{research.created_at ? timeAgo(research.created_at) : null}</div>
         </div>
-        <ProgressDetails progressHistory={research.progressHistory} status={research.status} />
+        <ProgressDetails progressHistory={research.progressHistory} />
         <div className="flex flex-col">
           {research.status === 1 ? (
             <div className="p-4 border border-stone-500 rounded-xl flex items-center">
               <div className="animate-spin mr-4">
                 <LoaderCircle size={20} />
               </div>
-              <div className="w-full bg-white h-2 rounded-full">
+              <div className="w-full bg-stone-500 h-2 rounded-full">
                 <div
                   className="bg-amber-700 h-2 rounded-full transition-all duration-500 ease-in-out"
                   style={{ width: `${Math.min(research.progress || 0, 100)}%` }}

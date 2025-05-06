@@ -87,18 +87,18 @@ export default function Home() {
     >
       <div className="absolute top-0 left-0 flex flex-col m-4">
         <div className="flex space-x-4 space-y-4">
-          <div className="h-[10dvh] w-[10dvh] rounded-[25%] rounded-br-[100%] bg-blue-600"></div>
-          <div className="h-[10dvh] w-[10dvh] rounded-full rounded-bl-none bg-red-400"></div>
-          <div className="h-[10dvh] w-[10dvh] rounded-full rounded-b-none rounded-br-none bg-yellow-400"></div>
+          <div className="h-[10vh] w-[10vh] rounded-[25%] rounded-br-[100%] bg-blue-600"></div>
+          <div className="h-[10vh] w-[10vh] rounded-full rounded-bl-none bg-red-400"></div>
+          <div className="h-[10vh] w-[10vh] rounded-full rounded-b-none rounded-br-none bg-yellow-400"></div>
         </div>
         <div className="flex space-x-4 space-y-4">
-          <div className="h-[10dvh] w-[10dvh] rounded-[25%] rounded-tl-none rounded-br-none bg-violet-400"></div>
-          <div className="h-[10dvh] w-[10dvh] rounded-full bg-orange-400"></div>
+          <div className="h-[10vh] w-[10vh] rounded-[25%] rounded-tl-none rounded-br-none bg-violet-400"></div>
+          <div className="h-[10vh] w-[10vh] rounded-full bg-orange-400"></div>
         </div>
       </div>
       <div className="max-w-2xl p-2 mx-auto relative flex flex-col z-10">
-        <h2 className="p-2 mx-auto mt-[30dvh] text-2xl font-bold font-serif">こんにちは、今日はなにをしますか？</h2>
-        <form onSubmit={handleSubmit} className="p-2 mb-[20dvh]">
+        <h2 className="p-2 mx-auto mt-[30vh] text-2xl font-bold font-serif">こんにちは、今日はなにをしますか？</h2>
+        <form onSubmit={handleSubmit} className="p-2 mb-[20vh]">
           <div className="relative bg-white border border-stone-500 rounded-xl overflow-hidden">
             <textarea
               id="query"
@@ -115,17 +115,17 @@ export default function Home() {
                 <div className="flex items-center">
                   <span className="p-2 text-xs">深さ</span>
                   <select id="depth" name="depth" className="p-2 text-xs rounded-xl" defaultValue={"3"}>
-                    <option value="2">浅い</option>
-                    <option value="3">中程度</option>
-                    <option value="5">深い</option>
+                    <option value="1">浅い</option>
+                    <option value="2">中程度</option>
+                    <option value="3">深い</option>
                   </select>
                 </div>
                 <div className="flex items-center">
                   <span className="p-2 text-xs">広さ</span>
                   <select id="breadth" name="breadth" className="p-2 text-xs rounded-xl" defaultValue={"3"}>
-                    <option value="2">少し</option>
-                    <option value="3">中程度</option>
-                    <option value="5">広く</option>
+                    <option value="1">少し</option>
+                    <option value="2">中程度</option>
+                    <option value="3">広く</option>
                   </select>
                 </div>
               </div>
@@ -149,8 +149,8 @@ export default function Home() {
                 <h3 className="p-2 flex flex-col flex-1 justify-end text-white bg-linear-to-t from-black to-transparent">
                   <div className="font-bold wrap-anywhere line-clamp-2">{research.title || research.query}</div>
                   <div className="flex text-xs space-x-2">
-                    <div className="">カテゴリー: {research.category || "不明"}</div>
-                    <div className="text-stone-500">作成: {research.created_at ? timeAgo(research.created_at) : null}</div>
+                    <div className="">{research.category || "不明"}</div>
+                    <div className="text-stone-500">{research.created_at ? timeAgo(research.created_at) : null}</div>
                   </div>
                 </h3>
               </Link>
