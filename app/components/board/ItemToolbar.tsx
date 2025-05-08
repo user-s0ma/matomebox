@@ -1,7 +1,7 @@
 // src/components/ItemToolbar.tsx
 import { useState } from "react";
 import { Trash2, Copy, AlignLeft, AlignCenter, AlignRight, ChevronDown, Settings2 } from "lucide-react";
-import type { TextAlign, StickyNoteData, TextNoteData, DrawLineData, DashboardItem } from "./constants";
+import type { TextAlign, StickyNoteData, TextNoteData, DrawLineData, DashboardItem, ImageItemData } from "./constants"; // Added ImageItemData
 import { colorValues } from "./constants";
 
 interface ItemToolbarProps {
@@ -11,11 +11,9 @@ interface ItemToolbarProps {
   onUpdateItem: (updatedProps: Partial<DashboardItem>) => void;
 }
 
-// --- Constants for ItemToolbar ---
 const fontSizeValues: string[] = ["12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px", "48px"];
 const lineThicknessValues: number[] = [1, 2, 4, 7, 10, 15];
 
-// --- ItemToolbar Component ---
 const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, onUpdateItem }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontSizePicker, setShowFontSizePicker] = useState(false);
@@ -33,8 +31,8 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
     item.type === "text" && (item as TextNoteData).textAlign === "left"
       ? AlignLeft
       : item.type === "text" && (item as TextNoteData).textAlign === "center"
-        ? AlignCenter
-        : AlignRight;
+      ? AlignCenter
+      : AlignRight;
 
   const closeAllPickers = () => {
     setShowColorPicker(false);
@@ -72,7 +70,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                     <button
                       key={colorValue}
                       title={colorValue}
-                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${(item as StickyNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${
+                        (item as StickyNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""
+                      }`}
                       style={{ backgroundColor: colorValue }}
                       onClick={() => {
                         handleUpdate({ color: colorValue });
@@ -103,7 +103,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                       handleUpdate({ fontSize: fontSizeValue });
                       closeAllPickers();
                     }}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 ${(item as StickyNoteData).fontSize === fontSizeValue ? activeIconButtonClass : ""}`}
+                    className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 ${
+                      (item as StickyNoteData).fontSize === fontSizeValue ? activeIconButtonClass : ""
+                    }`}
                   >
                     {parseInt(fontSizeValue)}px
                   </button>
@@ -136,7 +138,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                     <button
                       key={colorValue}
                       title={colorValue}
-                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${(item as TextNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${
+                        (item as TextNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""
+                      }`}
                       style={{ backgroundColor: colorValue }}
                       onClick={() => {
                         handleUpdate({ color: colorValue });
@@ -158,7 +162,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                       handleUpdate({ fontSize: fontSizeValue });
                       closeAllPickers();
                     }}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 ${(item as TextNoteData).fontSize === fontSizeValue ? activeIconButtonClass : ""}`}
+                    className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 ${
+                      (item as TextNoteData).fontSize === fontSizeValue ? activeIconButtonClass : ""
+                    }`}
                   >
                     {parseInt(fontSizeValue)}px
                   </button>
@@ -200,7 +206,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                       closeAllPickers();
                     }}
                     title={label}
-                    className={`w-full flex items-center space-x-2 px-3 py-1.5 text-xs rounded-md hover:bg-gray-500 ${(item as TextNoteData).textAlign === align ? activeIconButtonClass : ""}`}
+                    className={`w-full flex items-center space-x-2 px-3 py-1.5 text-xs rounded-md hover:bg-gray-500 ${
+                      (item as TextNoteData).textAlign === align ? activeIconButtonClass : ""
+                    }`}
                   >
                     <Icon size={16} /> <span>{label}</span>
                   </button>
@@ -233,7 +241,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                     <button
                       key={colorValue}
                       title={colorValue}
-                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${(item as DrawLineData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${
+                        (item as DrawLineData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""
+                      }`}
                       style={{ backgroundColor: colorValue }}
                       onClick={() => {
                         handleUpdate({ color: colorValue });
@@ -266,7 +276,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
                         handleUpdate({ width: thicknessValue });
                         closeAllPickers();
                       }}
-                      className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 ${(item as DrawLineData).width === thicknessValue ? activeIconButtonClass : ""}`}
+                      className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 ${
+                        (item as DrawLineData).width === thicknessValue ? activeIconButtonClass : ""
+                      }`}
                     >
                       {thicknessValue}px
                     </button>

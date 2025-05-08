@@ -1,11 +1,11 @@
 // src/Dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Pen, StickyNote, Type, ZoomIn, ZoomOut } from "lucide-react";
+import { Pen, StickyNote, Type, ZoomIn, ZoomOut, Image as ImageIcon } from "lucide-react";
 
-// Import Components
 import StickyNoteComponent from "@/components/board/StickyNote";
 import TextNoteComponent from "@/components/board/TextNote";
 import DrawLineComponent from "@/components/board/DrawLine";
+import ImageNoteComponent from "@/components/board/ImageNote";
 import ItemToolbar from "@/components/board/ItemToolbar";
 import PenDrawingToolbar from "@/components/board/PenDrawingToolbar";
 import CanvasRuler from "@/components/board/CanvasRuler";
@@ -18,16 +18,17 @@ import type {
   StickyNoteData,
   TextNoteData,
   DrawLineData,
+  ImageItemData,
   DashboardItem,
   RulerConfig,
 } from "@/components/board/constants";
 import { colorValues, RULER_DEFAULT_SCREEN_LENGTH, HIGHLIGHTER_THICKNESS, ERASER_RADIUS_WORLD } from "@/components/board/constants";
 
-// --- Central Helper Functions ---
 interface DashboardStorageData {
   notes?: StickyNoteData[];
   texts?: TextNoteData[];
   lines?: DrawLineData[];
+  images?: ImageItemData[];
   panOffset?: PanOffset;
   zoomLevel?: number;
 }
@@ -84,16 +85,17 @@ function distancePointToSegment(p: Point, s1: Point, s2: Point): number {
   return Math.sqrt(distanceSq(p, closestPoint));
 }
 
-// --- Main Dashboard Component ---
 const Dashboard: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rulerRef = useRef<SVGSVGElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // For image upload
 
   const [notes, setNotes] = useState<StickyNoteData[]>([]);
   const [texts, setTexts] = useState<TextNoteData[]>([]);
   const [lines, setLines] = useState<DrawLineData[]>([]);
+  const [images, setImages] = useState<ImageItemData[]>([]); // Added images state
 
-  const [currentTool, setCurrentTool] = useState<"select_pan" | "pen" | "note" | "text">("select_pan");
+  const [currentTool, setCurrentTool] = useState<"select_pan" | "pen" | "note" | "text" | "image">("select_pan"); // Added "image" for potential future use, though addImage sets to select_pan
   const [currentPenType, setCurrentPenType] = useState<PenToolType>("pen");
 
   const [selectedItem, setSelectedItem] = useState<DashboardItem | null>(null);
@@ -141,6 +143,7 @@ const Dashboard: React.FC = () => {
         setNotes(data.notes || []);
         setTexts(data.texts || []);
         setLines(data.lines || []);
+        setImages(data.images || []);
         setPanOffset(data.panOffset || { x: 0, y: 0 });
         setZoomLevel(data.zoomLevel || 1);
         setRulerConfig({ active: false, p1: initialRulerP1Screen, p2: initialRulerP2Screen });
@@ -149,7 +152,8 @@ const Dashboard: React.FC = () => {
           0,
           ...(data.notes || []).map((n) => n.zIndex || 0),
           ...(data.texts || []).map((t) => t.zIndex || 0),
-          ...(data.lines || []).map((l) => l.zIndex || 0)
+          ...(data.lines || []).map((l) => l.zIndex || 0),
+          ...(data.images || []).map((i) => i.zIndex || 0)
         );
         setHighestZIndex(maxZ);
       }
@@ -157,11 +161,11 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const dataToSave: DashboardStorageData = { notes, texts, lines, panOffset, zoomLevel };
-    if (notes.length > 0 || texts.length > 0 || lines.length > 0 || panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1) {
+    const dataToSave: DashboardStorageData = { notes, texts, lines, images, panOffset, zoomLevel };
+    if (notes.length > 0 || texts.length > 0 || lines.length > 0 || images.length > 0 || panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1) {
       saveToDatabase(dataToSave);
     }
-  }, [notes, texts, lines, panOffset, zoomLevel]);
+  }, [notes, texts, lines, images, panOffset, zoomLevel]);
 
   const getNextZIndex = (): number => {
     const newZ = highestZIndex + 1;
@@ -177,37 +181,25 @@ const Dashboard: React.FC = () => {
 
     if (type === "note") {
       const noteToSelect = notes.find((n) => n.id === id);
-      if (noteToSelect) {
-        newlySelectedItem = { ...noteToSelect, isSelected: true };
-      }
+      if (noteToSelect) newlySelectedItem = { ...noteToSelect, isSelected: true };
     } else if (type === "text") {
       const textToSelect = texts.find((t) => t.id === id);
-      if (textToSelect) {
-        newlySelectedItem = { ...textToSelect, isSelected: true };
-      }
+      if (textToSelect) newlySelectedItem = { ...textToSelect, isSelected: true };
     } else if (type === "line") {
       const lineToSelect = lines.find((l) => l.id === id);
-      if (lineToSelect) {
-        newlySelectedItem = { ...lineToSelect, isSelected: true };
-      }
+      if (lineToSelect) newlySelectedItem = { ...lineToSelect, isSelected: true };
+    } else if (type === "image") {
+      const imageToSelect = images.find((i) => i.id === id);
+      if (imageToSelect) newlySelectedItem = { ...imageToSelect, isSelected: true };
     }
 
     if (newlySelectedItem) {
       setSelectedItem(newlySelectedItem);
 
-      if (type === "note") {
-        setNotes((prevNotes) => prevNotes.map((n) => (n.id === id ? (newlySelectedItem as StickyNoteData) : { ...n, isSelected: false })));
-        setTexts((prevTexts) => prevTexts.map((t) => ({ ...t, isSelected: false })));
-        setLines((prevLines) => prevLines.map((l) => ({ ...l, isSelected: false })));
-      } else if (type === "text") {
-        setTexts((prevTexts) => prevTexts.map((t) => (t.id === id ? (newlySelectedItem as TextNoteData) : { ...t, isSelected: false })));
-        setNotes((prevNotes) => prevNotes.map((n) => ({ ...n, isSelected: false })));
-        setLines((prevLines) => prevLines.map((l) => ({ ...l, isSelected: false })));
-      } else if (type === "line") {
-        setLines((prevLines) => prevLines.map((l) => (l.id === id ? (newlySelectedItem as DrawLineData) : { ...l, isSelected: false })));
-        setNotes((prevNotes) => prevNotes.map((n) => ({ ...n, isSelected: false })));
-        setTexts((prevTexts) => prevTexts.map((t) => ({ ...t, isSelected: false })));
-      }
+      setNotes((prevNotes) => prevNotes.map((n) => (n.id === id && type === "note" ? (newlySelectedItem as StickyNoteData) : { ...n, isSelected: false })));
+      setTexts((prevTexts) => prevTexts.map((t) => (t.id === id && type === "text" ? (newlySelectedItem as TextNoteData) : { ...t, isSelected: false })));
+      setLines((prevLines) => prevLines.map((l) => (l.id === id && type === "line" ? (newlySelectedItem as DrawLineData) : { ...l, isSelected: false })));
+      setImages((prevImages) => prevImages.map((i) => (i.id === id && type === "image" ? (newlySelectedItem as ImageItemData) : { ...i, isSelected: false })));
     } else {
       handleDeselect();
     }
@@ -219,6 +211,7 @@ const Dashboard: React.FC = () => {
     setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
     setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
     setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+    setImages((prev) => prev.map((i) => ({ ...i, isSelected: false }))); // Deselect images
   }, [editingItem]);
 
   useEffect(() => {
@@ -238,7 +231,7 @@ const Dashboard: React.FC = () => {
       }
 
       if (containerRef.current && containerRef.current.contains(target) && !clickedOnRuler) {
-        clickedOnAnyItemElement = [...notes, ...texts, ...lines].some((item) => {
+        clickedOnAnyItemElement = [...notes, ...texts, ...lines, ...images].some((item) => {
           const itemElement = document.getElementById(`${item.type}-${item.id}`);
           return itemElement && itemElement.contains(target);
         });
@@ -261,7 +254,7 @@ const Dashboard: React.FC = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [selectedItem, editingItem, handleDeselect, notes, texts, lines, currentTool, isDrawing, rulerConfig.active]);
+  }, [selectedItem, editingItem, handleDeselect, notes, texts, lines, images, currentTool, isDrawing, rulerConfig.active]);
 
   const addNote = () => {
     if (!containerRect) return;
@@ -282,6 +275,7 @@ const Dashboard: React.FC = () => {
     setNotes((prev) => [...prev.map((n) => ({ ...n, isSelected: false })), newNote]);
     setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
     setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+    setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
 
     setSelectedItem(newNote);
     setEditingItem({ type: "note", id: newNote.id });
@@ -308,10 +302,76 @@ const Dashboard: React.FC = () => {
     setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
     setTexts((prev) => [...prev.map((t) => ({ ...t, isSelected: false })), newText]);
     setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+    setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
 
     setSelectedItem(newText);
     setEditingItem({ type: "text", id: newText.id });
     setCurrentTool("select_pan");
+  };
+
+  const triggerImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!containerRect) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string;
+      if (!imageUrl) return;
+
+      const img = new window.Image();
+      img.onload = () => {
+        const newZ = getNextZIndex();
+        const MAX_INITIAL_DIM_WORLD = 300;
+        let newWidth = img.naturalWidth;
+        let newHeight = img.naturalHeight;
+
+        if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+          newWidth = 150;
+          newHeight = 150;
+        }
+        const aspectRatio = newWidth / newHeight;
+
+        if (newWidth > MAX_INITIAL_DIM_WORLD) {
+          newWidth = MAX_INITIAL_DIM_WORLD;
+          newHeight = newWidth / aspectRatio;
+        }
+        if (newHeight > MAX_INITIAL_DIM_WORLD) {
+          newHeight = MAX_INITIAL_DIM_WORLD;
+          newWidth = newHeight * aspectRatio;
+        }
+
+        const newImageItem: ImageItemData = {
+          id: Date.now(),
+          type: "image",
+          src: imageUrl,
+          x: containerRect.width / 2 / zoomLevel + panOffset.x - newWidth / 2,
+          y: containerRect.height / 2 / zoomLevel + panOffset.y - newHeight / 2,
+          width: newWidth,
+          height: newHeight,
+          zIndex: newZ,
+          isSelected: true,
+        };
+
+        setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
+        setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
+        setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+        setImages((prev) => [...prev.map((i) => ({ ...i, isSelected: false })), newImageItem]);
+
+        setSelectedItem(newImageItem);
+        setCurrentTool("select_pan");
+      };
+      img.onerror = () => alert("画像の読み込みに失敗しました。ファイル形式を確認してください。");
+      img.src = imageUrl;
+    };
+    reader.onerror = () => alert("ファイルの読み込みに失敗しました。");
+    reader.readAsDataURL(file);
+
+    if (event.target) event.target.value = "";
   };
 
   const updateItem = (updatedItemData: Partial<DashboardItem> & { type: ItemType; id: number }, isTemporary: boolean = false) => {
@@ -348,10 +408,22 @@ const Dashboard: React.FC = () => {
           return item;
         })
       );
+    } else if (type === "image") {
+      setImages((prev) =>
+        prev.map((item) => {
+          if (item.id === id) {
+            itemUpdatedInArray = { ...item, ...updatedItemData } as ImageItemData;
+            return itemUpdatedInArray;
+          }
+          return item;
+        })
+      );
     }
 
     if (selectedItem && selectedItem.id === id && selectedItem.type === type) {
-      setSelectedItem(itemUpdatedInArray ? itemUpdatedInArray : (prev) => (prev ? ({ ...prev, ...updatedItemData } as DashboardItem) : null));
+      if (!isTemporary || type === "image" || type === "text" || type === "note") {
+        setSelectedItem(itemUpdatedInArray ? itemUpdatedInArray : (prev) => (prev ? ({ ...prev, ...updatedItemData } as DashboardItem) : null));
+      }
     }
   };
 
@@ -359,29 +431,28 @@ const Dashboard: React.FC = () => {
     if (type === "note") setNotes((prev) => prev.filter((item) => item.id !== id));
     else if (type === "text") setTexts((prev) => prev.filter((item) => item.id !== id));
     else if (type === "line") setLines((prev) => prev.filter((item) => item.id !== id));
+    else if (type === "image") setImages((prev) => prev.filter((item) => item.id !== id));
 
     if (selectedItem && selectedItem.id === id && selectedItem.type === type) setSelectedItem(null);
     if (editingItem && editingItem.id === id && editingItem.type === type) setEditingItem(null);
   };
 
   const handleDuplicateItem = (type: ItemType, id: number) => {
-    const newZIndex = getNextZIndex();
     let newItem: DashboardItem | null = null;
     let originalItem: DashboardItem | undefined;
 
     setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
     setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
     setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+    setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
 
     if (type === "note") {
       originalItem = notes.find((item) => item.id === id);
-      if (originalItem)
-        newItem = { ...(originalItem as StickyNoteData), id: Date.now(), x: originalItem.x + 20, y: originalItem.y + 20, zIndex: newZIndex, isSelected: true };
+      if (originalItem) newItem = { ...(originalItem as StickyNoteData), id: Date.now(), x: originalItem.x + 20, y: originalItem.y + 20, isSelected: true };
       if (newItem) setNotes((prev) => [...prev, newItem as StickyNoteData]);
     } else if (type === "text") {
       originalItem = texts.find((item) => item.id === id);
-      if (originalItem)
-        newItem = { ...(originalItem as TextNoteData), id: Date.now(), x: originalItem.x + 20, y: originalItem.y + 20, zIndex: newZIndex, isSelected: true };
+      if (originalItem) newItem = { ...(originalItem as TextNoteData), id: Date.now(), x: originalItem.x + 20, y: originalItem.y + 20, isSelected: true };
       if (newItem) setTexts((prev) => [...prev, newItem as TextNoteData]);
     } else if (type === "line") {
       originalItem = lines.find((item) => item.id === id);
@@ -390,24 +461,31 @@ const Dashboard: React.FC = () => {
           ...(originalItem as DrawLineData),
           id: Date.now(),
           points: (originalItem as DrawLineData).points.map((p) => ({ x: p.x + 20, y: p.y + 20 })),
-          zIndex: newZIndex,
           isSelected: true,
         };
       if (newItem) setLines((prev) => [...prev, newItem as DrawLineData]);
+    } else if (type === "image") {
+      originalItem = images.find((item) => item.id === id);
+      if (originalItem) newItem = { ...(originalItem as ImageItemData), id: Date.now(), x: originalItem.x + 20, y: originalItem.y + 20, isSelected: true };
+      if (newItem) setImages((prev) => [...prev, newItem as ImageItemData]);
     }
     if (newItem) setSelectedItem(newItem);
   };
 
   const handleEditItem = (type: ItemType, id: number) => {
-    const newZIndex = getNextZIndex();
+    if (type === "image") {
+      handleSelectItem(type, id);
+      return;
+    }
+
     let itemToEditAndSelect: DashboardItem | null = null;
 
     if (type === "note") {
       const noteToEdit = notes.find((n) => n.id === id);
-      if (noteToEdit) itemToEditAndSelect = { ...noteToEdit, zIndex: newZIndex, isSelected: true };
+      if (noteToEdit) itemToEditAndSelect = { ...noteToEdit, isSelected: true };
     } else if (type === "text") {
       const textToEdit = texts.find((t) => t.id === id);
-      if (textToEdit) itemToEditAndSelect = { ...textToEdit, zIndex: newZIndex, isSelected: true };
+      if (textToEdit) itemToEditAndSelect = { ...textToEdit, isSelected: true };
     }
 
     if (itemToEditAndSelect) {
@@ -417,17 +495,21 @@ const Dashboard: React.FC = () => {
         setNotes((prev) => prev.map((n) => (n.id === id ? (itemToEditAndSelect as StickyNoteData) : { ...n, isSelected: false })));
         setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
         setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+        setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
       } else if (type === "text") {
         setTexts((prev) => prev.map((t) => (t.id === id ? (itemToEditAndSelect as TextNoteData) : { ...t, isSelected: false })));
         setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
         setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+        setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
       }
     } else {
       setSelectedItem(null);
       setEditingItem(null);
+
       setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
       setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
       setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
+      setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
     }
   };
 
@@ -443,8 +525,10 @@ const Dashboard: React.FC = () => {
   };
 
   const handleItemEraserClick = (itemType: ItemType, itemId: number) => {
-    if (currentTool === "pen" && currentPenType === "eraser" && itemType === "line") {
-      handleDeleteItem(itemType, itemId);
+    if (currentTool === "pen" && currentPenType === "eraser") {
+      if (itemType === "line") {
+        handleDeleteItem(itemType, itemId);
+      }
     }
   };
 
@@ -458,7 +542,7 @@ const Dashboard: React.FC = () => {
 
     if (isTouch && event.target !== containerRef.current && currentTool === "select_pan") {
       let isItemTarget = false;
-      const allItems = [...notes, ...texts, ...lines];
+      const allItems = [...notes, ...texts, ...lines, ...images];
       for (const item of allItems) {
         const itemElement = document.getElementById(`${item.type}-${item.id}`);
         if (itemElement && itemElement.contains(event.target as Node)) {
@@ -466,7 +550,7 @@ const Dashboard: React.FC = () => {
           break;
         }
       }
-      if (isItemTarget && !(event.target as HTMLElement).closest(".resize-handle")) return;
+      if (isItemTarget && !(event.target as HTMLElement).closest(".resize-handle") && !(event.target as HTMLElement).closest(".resize-handle-img")) return;
     }
 
     if (event.target === containerRef.current && currentTool === "select_pan") {
@@ -606,6 +690,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col h-dvh antialiased overflow-hidden">
+      <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: "none" }} />
       <div
         ref={containerRef}
         className="flex-grow relative overflow-hidden touch-none"
@@ -673,6 +758,18 @@ const Dashboard: React.FC = () => {
               containerRect={containerRect}
             />
           ))}
+          {images.map((image) => (
+            <ImageNoteComponent
+              key={image.id}
+              image={image}
+              onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "image"; id: number }, temp)}
+              onSelectItem={handleSelectItem}
+              panOffset={panOffset}
+              zoomLevel={zoomLevel}
+              currentPenType={currentTool === "pen" ? currentPenType : ""}
+              containerRect={containerRect}
+            />
+          ))}
           {isDrawing && currentTool === "pen" && currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 0 && (
             <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: highestZIndex + 100 }}>
               <path
@@ -715,6 +812,7 @@ const Dashboard: React.FC = () => {
               },
               { tool: "note" as "note", title: "付箋追加", icon: StickyNote, action: addNote },
               { tool: "text" as "text", title: "テキスト追加", icon: Type, action: addText },
+              { tool: "image" as "image", title: "画像追加", icon: ImageIcon, action: triggerImageUpload }, // Added image button
             ].map(({ tool, title, icon: Icon, action }) => (
               <button key={tool} title={title} onClick={action} className="p-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-700 hover:text-white">
                 <Icon size={20} />

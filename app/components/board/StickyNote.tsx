@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { Point, PanOffset, ContainerRect, StickyNoteData, ItemType, PenToolType } from "./constants";
 
-// --- Types for StickyNote ---
 interface DragStartInfo {
   screenX: number;
   screenY: number;
@@ -373,7 +372,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
           {resizeHandlesDef.map((handle) => (
             <div
               key={handle.name}
-              className={`w-3 h-3 resize-handle absolute rounded-full bg-blue-500 border border-white shadow-md ${handle.classes}`}
+              className={`w-3 h-3 resize-handle absolute rounded-full bg-blue-500 border border-white ${handle.classes}`}
               style={{
                 cursor: handle.cursor,
                 zIndex: (note.zIndex || 0) + 1,

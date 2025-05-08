@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { Point, PanOffset, ContainerRect, PenToolType, ItemType, DrawLineData } from "./constants";
 import { HIGHLIGHTER_THICKNESS } from "./constants";
 
-// --- Types for DrawLine ---
 interface LineDragStartInfo {
   screenX: number;
   screenY: number;
@@ -30,7 +29,6 @@ interface BoundingBox {
   height: number;
 }
 
-// --- Helper Functions for DrawLine ---
 const screenToWorld = (screenX: number, screenY: number, panOffset: PanOffset, zoomLevel: number, containerRect: ContainerRect | null): Point => {
   if (!containerRect) return { x: 0, y: 0 };
   return {
@@ -65,7 +63,6 @@ function distancePointToSegment(p: Point, s1: Point, s2: Point): number {
   return Math.sqrt(distanceSq(p, closestPoint));
 }
 
-// --- DrawLine Component ---
 const DrawLine: React.FC<DrawLineProps> = ({
   line,
   isSelected,
