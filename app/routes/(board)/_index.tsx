@@ -46,16 +46,6 @@ const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset
   };
 };
 
-interface RectGeom {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-const isPointInRect = (point: Point, rect: RectGeom): boolean => {
-  return point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
-};
-
 function distanceSq(p1: Point, p2: Point): number {
   return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2);
 }
@@ -68,17 +58,25 @@ function distancePointToSegment(p: Point, s1: Point, s2: Point): number {
   return Math.sqrt(distanceSq(p, closestPoint));
 }
 
+const getDistance = (p1: Point, p2: Point): number => {
+  return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+};
+
+const getMidpoint = (p1: Point, p2: Point): Point => {
+  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+};
+
 const Dashboard: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rulerRef = useRef<SVGSVGElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null); // For image upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [notes, setNotes] = useState<StickyNoteData[]>([]);
   const [texts, setTexts] = useState<TextNoteData[]>([]);
   const [lines, setLines] = useState<DrawLineData[]>([]);
-  const [images, setImages] = useState<ImageItemData[]>([]); // Added images state
+  const [images, setImages] = useState<ImageItemData[]>([]);
 
-  const [currentTool, setCurrentTool] = useState<"select_pan" | "pen" | "note" | "text" | "image">("select_pan"); // Added "image" for potential future use, though addImage sets to select_pan
+  const [currentTool, setCurrentTool] = useState<"select_pan" | "pen" | "note" | "text" | "image">("select_pan");
   const [currentPenType, setCurrentPenType] = useState<PenToolType>("pen");
 
   const [selectedItem, setSelectedItem] = useState<DashboardItem | null>(null);
@@ -96,6 +94,12 @@ const Dashboard: React.FC = () => {
   const [panStartMouse, setPanStartMouse] = useState<Point>({ x: 0, y: 0 });
   const [panStartOffset, setPanStartOffset] = useState<PanOffset>({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  const [isPinchZooming, setIsPinchZooming] = useState(false);
+  const [pinchStartDistance, setPinchStartDistance] = useState<number>(0);
+  const [pinchStartZoom, setPinchStartZoom] = useState<number>(1);
+  const [pinchStartMidpointScreen, setPinchStartMidpointScreen] = useState<Point | null>(null);
+  const [pinchStartPanOffset, setPinchStartPanOffset] = useState<PanOffset>({ x: 0, y: 0 });
 
   const initialRulerP1Screen: Point = { x: 100, y: 100 };
   const initialRulerP2Screen: Point = { x: 100 + RULER_DEFAULT_SCREEN_LENGTH, y: 100 };
@@ -207,12 +211,14 @@ const Dashboard: React.FC = () => {
     setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
     setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
     setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
-    setImages((prev) => prev.map((i) => ({ ...i, isSelected: false }))); // Deselect images
+    setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
   }, [editingItem]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (editingItem) return;
+      if (isPinchZooming) return;
+
       const target = event.target as Node;
       const itemToolbar = document.getElementById("item-action-toolbar");
       const mainToolbar = document.getElementById("main-toolbar");
@@ -250,7 +256,7 @@ const Dashboard: React.FC = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [selectedItem, editingItem, handleDeselect, notes, texts, lines, images, currentTool, isDrawing, rulerConfig.active]);
+  }, [selectedItem, editingItem, handleDeselect, notes, texts, lines, images, currentTool, isDrawing, rulerConfig.active, isPinchZooming]);
 
   const addNote = () => {
     if (!containerRect) return;
@@ -536,6 +542,9 @@ const Dashboard: React.FC = () => {
   ) => {
     if (!containerRect) return;
 
+    if (isTouch && (event as React.TouchEvent<HTMLDivElement>).touches.length > 1) return;
+    if (isPinchZooming) return;
+
     if (isTouch && event.target !== containerRef.current && currentTool === "select_pan") {
       let isItemTarget = false;
       const allItems = [...notes, ...texts, ...lines, ...images];
@@ -584,6 +593,8 @@ const Dashboard: React.FC = () => {
     event?: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
   ) => {
     if (!containerRect) return;
+    if (isPinchZooming) return;
+
     if (isDrawing && currentTool === "pen") {
       if (isTouch && event?.nativeEvent instanceof TouchEvent && event.cancelable) event.preventDefault();
       let currentCoords = screenToWorld(clientX, clientY, panOffset, zoomLevel, containerRect);
@@ -635,6 +646,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCanvasInteractionEnd = () => {
+    if (isPinchZooming) return;
+
     if (isDrawing && currentTool === "pen") {
       setIsDrawing(false);
       if (currentPenType !== "eraser" && currentLinePoints.length > 1) {
@@ -659,17 +672,120 @@ const Dashboard: React.FC = () => {
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => handleCanvasInteractionStart(e.clientX, e.clientY, false, e);
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => handleCanvasInteractionMove(e.clientX, e.clientY, false, e);
   const handleCanvasMouseUp = () => handleCanvasInteractionEnd();
-  const handleCanvasTouchStart = (e: React.TouchEvent<HTMLDivElement>) => handleCanvasInteractionStart(e.touches[0].clientX, e.touches[0].clientY, true, e);
-  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLDivElement>) => handleCanvasInteractionMove(e.touches[0].clientX, e.touches[0].clientY, true, e);
-  const handleCanvasTouchEnd = () => handleCanvasInteractionEnd();
 
-  const handleZoom = (direction: "in" | "out") => {
+  const handleCanvasTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!containerRect) return;
-    const zoomFactor = 0.1;
+    const touches = e.touches;
+
+    if (touches.length === 2) {
+      if (e.cancelable) e.preventDefault();
+      setIsPinchZooming(true);
+      setIsPanning(false);
+      setIsDrawing(false);
+      setCurrentLinePoints([]);
+
+      const t1 = { x: touches[0].clientX, y: touches[0].clientY };
+      const t2 = { x: touches[1].clientX, y: touches[1].clientY };
+      const dist = getDistance(t1, t2);
+      const mid = getMidpoint(t1, t2);
+
+      setPinchStartDistance(dist);
+      setPinchStartZoom(zoomLevel);
+      setPinchStartMidpointScreen(mid);
+      setPinchStartPanOffset({ ...panOffset });
+      handleDeselect();
+    } else if (touches.length === 1) {
+      if (isPinchZooming) {
+        setIsPinchZooming(false);
+        setPinchStartMidpointScreen(null);
+      }
+      handleCanvasInteractionStart(touches[0].clientX, touches[0].clientY, true, e);
+    } else {
+      if (isPinchZooming) {
+        setIsPinchZooming(false);
+        setPinchStartMidpointScreen(null);
+      }
+    }
+  };
+
+  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!containerRect) return;
+    const touches = e.touches;
+    const minZoom = 0.1;
+    const maxZoom = 2.0;
+
+    if (isPinchZooming && touches.length === 2 && pinchStartMidpointScreen) {
+      if (e.cancelable) e.preventDefault();
+      const t1 = { x: touches[0].clientX, y: touches[0].clientY };
+      const t2 = { x: touches[1].clientX, y: touches[1].clientY };
+      const currentDist = getDistance(t1, t2);
+      const currentMidpointScreen = getMidpoint(t1, t2);
+
+      if (pinchStartDistance > 0) {
+        const scaleRatio = currentDist / pinchStartDistance;
+        const targetZoom = pinchStartZoom * scaleRatio;
+        const newZoom = Math.min(Math.max(targetZoom, minZoom), maxZoom);
+
+        const worldPointAtInitialPinchCenter = screenToWorld(
+          pinchStartMidpointScreen.x,
+          pinchStartMidpointScreen.y,
+          pinchStartPanOffset,
+          pinchStartZoom,
+          containerRect
+        );
+
+        const newPanX = worldPointAtInitialPinchCenter.x - (currentMidpointScreen.x - containerRect.left) / newZoom;
+        const newPanY = worldPointAtInitialPinchCenter.y - (currentMidpointScreen.y - containerRect.top) / newZoom;
+
+        setZoomLevel(newZoom);
+        setPanOffset({ x: newPanX, y: newPanY });
+      }
+    } else if (!isPinchZooming && touches.length === 1) {
+      handleCanvasInteractionMove(touches[0].clientX, touches[0].clientY, true, e);
+    } else if (isPinchZooming && touches.length !== 2) {
+      setIsPinchZooming(false);
+      setPinchStartMidpointScreen(null);
+    }
+  };
+
+  const handleCanvasTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isPinchZooming) {
+      if (e.touches.length < 2) {
+        setIsPinchZooming(false);
+        setPinchStartMidpointScreen(null);
+      }
+    } else {
+      handleCanvasInteractionEnd();
+    }
+  };
+
+  const handleZoomViaButtons = (direction: "in" | "out") => {
+    if (!containerRect) return;
     const oldZoom = zoomLevel;
+    const minZoom = 0.1;
+    const maxZoom = 2.0;
+    const epsilon = 1e-9;
+
     let newZoom;
-    if (direction === "in") newZoom = Math.min(oldZoom + zoomFactor, 3);
-    else newZoom = Math.max(oldZoom - zoomFactor, 0.2);
+
+    if (direction === "in") {
+      if (oldZoom >= maxZoom) {
+        newZoom = maxZoom;
+      } else {
+        newZoom = (Math.floor(oldZoom * 10 + epsilon) + 1) / 10;
+      }
+    } else {
+      if (oldZoom <= minZoom) {
+        newZoom = minZoom;
+      } else {
+        newZoom = (Math.ceil(oldZoom * 10 - epsilon) - 1) / 10;
+      }
+    }
+
+    newZoom = parseFloat(newZoom.toFixed(1));
+
+    newZoom = Math.max(minZoom, Math.min(newZoom, maxZoom));
+
     if (newZoom === oldZoom) return;
 
     const viewportCenterX_screen = containerRect.left + containerRect.width / 2;
@@ -701,6 +817,7 @@ const Dashboard: React.FC = () => {
         onTouchStart={handleCanvasTouchStart}
         onTouchMove={handleCanvasTouchMove}
         onTouchEnd={handleCanvasTouchEnd}
+        onTouchCancel={handleCanvasTouchEnd}
       >
         <div>
           {notes.map((note) => (
@@ -808,7 +925,7 @@ const Dashboard: React.FC = () => {
               },
               { tool: "note" as "note", title: "付箋追加", icon: StickyNote, action: addNote },
               { tool: "text" as "text", title: "テキスト追加", icon: Type, action: addText },
-              { tool: "image" as "image", title: "画像追加", icon: ImageIcon, action: triggerImageUpload }, // Added image button
+              { tool: "image" as "image", title: "画像追加", icon: ImageIcon, action: triggerImageUpload },
             ].map(({ tool, title, icon: Icon, action }) => (
               <button key={tool} title={title} onClick={action} className="p-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-700 hover:text-white">
                 <Icon size={20} />
@@ -816,11 +933,11 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
           <div id="zoom-controls" className="flex items-center space-x-1">
-            <button onClick={() => handleZoom("out")} title="縮小" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
+            <button onClick={() => handleZoomViaButtons("out")} title="縮小" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
               <ZoomOut size={20} />
             </button>
             <span className="text-xs text-gray-400 w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
-            <button onClick={() => handleZoom("in")} title="拡大" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
+            <button onClick={() => handleZoomViaButtons("in")} title="拡大" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
               <ZoomIn size={20} />
             </button>
           </div>
