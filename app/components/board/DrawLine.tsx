@@ -222,7 +222,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
       <path
         d={getPathDataForSVG()}
         stroke="transparent"
-        strokeWidth={effectiveStrokeWidth / zoomLevel + 20 / zoomLevel}
+        strokeWidth={effectiveStrokeWidth + 20 / zoomLevel}
         fill="none"
         strokeLinecap={strokeLineCap as "butt" | "round" | "square" | undefined}
         strokeLinejoin="round"
@@ -236,7 +236,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
       <path
         d={getPathDataForSVG()}
         stroke={line.color || "#FFCC00"}
-        strokeWidth={effectiveStrokeWidth / zoomLevel}
+        strokeWidth={effectiveStrokeWidth}
         strokeOpacity={strokeOpacity}
         fill="none"
         strokeLinecap={strokeLineCap as "butt" | "round" | "square" | undefined}
@@ -246,8 +246,8 @@ const DrawLine: React.FC<DrawLineProps> = ({
       {isSelected && currentPenType !== "eraser" && (
         <path
           d={getPathDataForSVG()}
-          stroke="rgba(0, 122, 255, 0.6)"
-          strokeWidth={effectiveStrokeWidth / zoomLevel + 6 / zoomLevel}
+          stroke="rgba(0, 122, 255, 0.5)"
+          strokeWidth={effectiveStrokeWidth + 10 / zoomLevel}
           fill="none"
           strokeLinecap={strokeLineCap as "butt" | "round" | "square" | undefined}
           strokeLinejoin="round"

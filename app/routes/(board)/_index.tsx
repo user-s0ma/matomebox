@@ -43,7 +43,7 @@ const loadFromDatabase = (): Promise<DashboardStorageData | null> => {
 };
 
 const getDotBackgroundStyle = (panOffset: PanOffset, zoomLevel: number) => ({
-  backgroundImage: "radial-gradient(circle, #888 1px, transparent 1px)",
+  backgroundImage: `radial-gradient(circle, #888 ${1 * zoomLevel}px, transparent ${1 * zoomLevel}px)`,
   backgroundSize: `${25 * zoomLevel}px ${25 * zoomLevel}px`,
   backgroundColor: "white",
   backgroundPosition: `${-panOffset.x * zoomLevel}px ${-panOffset.y * zoomLevel}px`,
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentLinePoints, setCurrentLinePoints] = useState<Point[]>([]);
-  const [drawingColor, setDrawingColor] = useState(colorValues[7]);
+  const [drawingColor, setDrawingColor] = useState(colorValues[5]);
   const [drawingWidth, setDrawingWidth] = useState(4);
 
   const [panOffset, setPanOffset] = useState<PanOffset>({ x: 0, y: 0 });

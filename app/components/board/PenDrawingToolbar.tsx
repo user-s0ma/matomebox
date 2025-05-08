@@ -88,14 +88,14 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
             <div className="h-6 w-6 rounded-full ring-2 ring-white ring-offset-1 ring-offset-black" style={{ backgroundColor: drawingColor }}></div>
           </button>
           {showPenColorPicker && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black rounded-xl shadow-2xl p-3 z-20 w-[200px]">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black rounded-xl shadow-2xl p-3 z-20 w-28">
               {/* Centered picker */}
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {colorValues.map((colorValue) => (
                   <button
                     key={colorValue}
                     title={colorValue}
-                    className={`w-6 h-6 rounded-full border border-gray-600 transition-transform hover:scale-110 focus:outline-none ${drawingColor === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                    className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${drawingColor === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
                     style={{ backgroundColor: colorValue }}
                     onClick={() => {
                       setDrawingColor(colorValue);

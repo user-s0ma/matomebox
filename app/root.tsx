@@ -2,8 +2,8 @@ import type { Route } from "./+types/root";
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import "./app.css";
 
-const DEFAULT_TITLE = "DeepNect - AIを活用したリサーチダッシュボード";
-const DEFAULT_DESCRIPTION = "「DeepNect」。幅広い分野の詳細をいち早くまとめます。";
+const DEFAULT_TITLE = "";
+const DEFAULT_DESCRIPTION = "";
 
 export default function App() {
   return (

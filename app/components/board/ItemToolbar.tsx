@@ -12,7 +12,7 @@ interface ItemToolbarProps {
 }
 
 // --- Constants for ItemToolbar ---
-const appleFontSizeValues: string[] = ["12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px", "48px"];
+const fontSizeValues: string[] = ["12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px", "48px"];
 const lineThicknessValues: number[] = [1, 2, 4, 7, 10, 15];
 
 // --- ItemToolbar Component ---
@@ -66,13 +66,13 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
               ></div>
             </button>
             {showColorPicker && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-[200px]">
-                <div className="grid grid-cols-5 gap-2">
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-28">
+                <div className="grid grid-cols-3 gap-2">
                   {colorValues.map((colorValue) => (
                     <button
                       key={colorValue}
                       title={colorValue}
-                      className={`w-6 h-6 rounded-full border border-gray-600 transition-transform hover:scale-110 focus:outline-none ${(item as StickyNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${(item as StickyNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
                       style={{ backgroundColor: colorValue }}
                       onClick={() => {
                         handleUpdate({ color: colorValue });
@@ -95,8 +95,8 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
               Aa <span className="ml-1 text-xs">{parseInt((item as StickyNoteData).fontSize)}</span>
             </button>
             {showFontSizePicker && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-28 bg-black rounded-lg shadow-2xl p-1 z-20">
-                {appleFontSizeValues.slice(0, 5).map((fontSizeValue) => (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-28">
+                {fontSizeValues.map((fontSizeValue) => (
                   <button
                     key={fontSizeValue}
                     onClick={() => {
@@ -130,13 +130,13 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
               ></div>
             </button>
             {showColorPicker && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-[200px]">
-                <div className="grid grid-cols-5 gap-2">
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-28">
+                <div className="grid grid-cols-3 gap-2">
                   {colorValues.map((colorValue) => (
                     <button
                       key={colorValue}
                       title={colorValue}
-                      className={`w-6 h-6 rounded-full border border-gray-600 transition-transform hover:scale-110 focus:outline-none ${(item as TextNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${(item as TextNoteData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
                       style={{ backgroundColor: colorValue }}
                       onClick={() => {
                         handleUpdate({ color: colorValue });
@@ -151,7 +151,7 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
           <div className="relative">
             {showFontSizePicker && (
               <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-32 bg-black rounded-lg shadow-2xl p-1 space-y-0.5 z-20">
-                {appleFontSizeValues.map((fontSizeValue) => (
+                {fontSizeValues.map((fontSizeValue) => (
                   <button
                     key={fontSizeValue}
                     onClick={() => {
@@ -227,13 +227,13 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
               ></div>
             </button>
             {showColorPicker && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-[200px]">
-                <div className="grid grid-cols-5 gap-2">
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black rounded-xl shadow-2xl p-3 z-20 w-28">
+                <div className="grid grid-cols-3 gap-2">
                   {colorValues.map((colorValue) => (
                     <button
                       key={colorValue}
                       title={colorValue}
-                      className={`w-6 h-6 rounded-full border border-gray-600 transition-transform hover:scale-110 focus:outline-none ${(item as DrawLineData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                      className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${(item as DrawLineData).color === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
                       style={{ backgroundColor: colorValue }}
                       onClick={() => {
                         handleUpdate({ color: colorValue });

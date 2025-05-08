@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "react-router dev",
     "build": "react-router build",
-    "dev": "npm run build && wrangler dev --remote",
+    "remote": "npm run build && wrangler dev --remote",
     "deploy": "npm run build && wrangler deploy",
     "typecheck": "wrangler types && react-router typegen && tsc -b",
     "drizzle:generate": "drizzle-kit generate",
