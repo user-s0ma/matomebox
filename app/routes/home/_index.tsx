@@ -81,8 +81,8 @@ export default function Home() {
     <main
       className="flex-1 relative overflow-hidden"
       style={{
-        backgroundImage: `radial-gradient(rgba(0, 0, 0, 0.2) 2px, transparent 3px)`,
-        backgroundSize: `40px 40px`,
+        backgroundImage: "radial-gradient(circle, #888 1px, transparent 1px)",
+        backgroundSize: `25px 25px`,
       }}
     >
       <div className="absolute top-0 left-0 flex flex-col m-4">
@@ -114,7 +114,7 @@ export default function Home() {
               <div className="flex gap-2">
                 <div className="flex items-center">
                   <span className="p-2 text-xs">深さ</span>
-                  <select id="depth" name="depth" className="p-2 text-xs rounded-xl" defaultValue={"3"}>
+                  <select id="depth" name="depth" className="p-2 text-xs rounded-xl" defaultValue={"2"}>
                     <option value="1">浅い</option>
                     <option value="2">中程度</option>
                     <option value="3">深い</option>
@@ -122,14 +122,14 @@ export default function Home() {
                 </div>
                 <div className="flex items-center">
                   <span className="p-2 text-xs">広さ</span>
-                  <select id="breadth" name="breadth" className="p-2 text-xs rounded-xl" defaultValue={"3"}>
+                  <select id="breadth" name="breadth" className="p-2 text-xs rounded-xl" defaultValue={"2"}>
                     <option value="1">少し</option>
                     <option value="2">中程度</option>
                     <option value="3">広く</option>
                   </select>
                 </div>
               </div>
-              <button type="submit" className="text-white text-xs bg-amber-700 py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
+              <button type="submit" className="text-white text-xs bg-black py-2 px-3 rounded-xl disabled:opacity-50" disabled={isSubmitting}>
                 {isSubmitting ? "処理..." : "作成"}
               </button>
             </div>

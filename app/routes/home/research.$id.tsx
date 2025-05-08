@@ -169,7 +169,7 @@ export default function ResearchDetails() {
         </div>
         <ProgressDetails progressHistory={research.progressHistory} />
         <div className="flex flex-col">
-          {research.status === 1 ? (
+          {research.status !== 2 ? (
             <div className="p-4 border border-stone-500 rounded-xl flex items-center">
               <div className="animate-spin mr-4">
                 <LoaderCircle size={20} />
