@@ -174,8 +174,14 @@ const Dashboard: React.FC = () => {
   };
 
   const handleSelectItem = (type: ItemType, id: number) => {
+    if (selectedItem && selectedItem.id === id && selectedItem.type === type) {
+      handleDeselect();
+      return;
+    }
+    if (editingItem && (editingItem.id !== id || editingItem.type !== type)) {
+      setEditingItem(null);
+    }
     if (editingItem && editingItem.id === id && editingItem.type === type) return;
-    if (editingItem) setEditingItem(null);
 
     let newlySelectedItem: DashboardItem | null = null;
 
@@ -593,6 +599,8 @@ const Dashboard: React.FC = () => {
     event?: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
   ) => {
     if (!containerRect) return;
+
+    if (isTouch && (event as React.TouchEvent<HTMLDivElement>).touches.length > 1) return;
     if (isPinchZooming) return;
 
     if (isDrawing && currentTool === "pen") {
@@ -750,12 +758,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCanvasTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (isPinchZooming) {
-      if (e.touches.length < 2) {
-        setIsPinchZooming(false);
-        setPinchStartMidpointScreen(null);
-      }
-    } else {
+    if (!isPinchZooming) {
       handleCanvasInteractionEnd();
     }
   };
@@ -825,8 +828,6 @@ const Dashboard: React.FC = () => {
             key={note.id}
             note={note}
             onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "note"; id: number }, temp)}
-            onDelete={() => handleDeleteItem("note", note.id)}
-            onDuplicate={() => handleDuplicateItem("note", note.id)}
             onSelectItem={handleSelectItem}
             isEditing={editingItem?.type === "note" && editingItem?.id === note.id}
             onEdit={() => handleEditItem("note", note.id)}
@@ -834,8 +835,6 @@ const Dashboard: React.FC = () => {
             panOffset={panOffset}
             zoomLevel={zoomLevel}
             currentPenType={currentTool === "pen" ? currentPenType : ""}
-            onItemEraserClick={handleItemEraserClick}
-            containerRect={containerRect}
             isPinchZooming={isPinchZooming}
           />
         ))}
@@ -844,8 +843,6 @@ const Dashboard: React.FC = () => {
             key={text.id}
             text={text}
             onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "text"; id: number }, temp)}
-            onDelete={() => handleDeleteItem("text", text.id)}
-            onDuplicate={() => handleDuplicateItem("text", text.id)}
             onSelectItem={handleSelectItem}
             isEditing={editingItem?.type === "text" && editingItem?.id === text.id}
             onEdit={() => handleEditItem("text", text.id)}
@@ -853,8 +850,6 @@ const Dashboard: React.FC = () => {
             panOffset={panOffset}
             zoomLevel={zoomLevel}
             currentPenType={currentTool === "pen" ? currentPenType : ""}
-            onItemEraserClick={handleItemEraserClick}
-            containerRect={containerRect}
             isPinchZooming={isPinchZooming}
           />
         ))}
@@ -865,7 +860,6 @@ const Dashboard: React.FC = () => {
             isSelected={selectedItem?.type === "line" && selectedItem?.id === line.id}
             onSelect={handleSelectItem}
             onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "line"; id: number }, temp)}
-            onDelete={() => handleDeleteItem("line", line.id)}
             panOffset={panOffset}
             zoomLevel={zoomLevel}
             currentPenType={currentTool === "pen" ? currentPenType : ""}
@@ -883,7 +877,6 @@ const Dashboard: React.FC = () => {
             panOffset={panOffset}
             zoomLevel={zoomLevel}
             currentPenType={currentTool === "pen" ? currentPenType : ""}
-            containerRect={containerRect}
             isPinchZooming={isPinchZooming}
           />
         ))}

@@ -24,7 +24,6 @@ interface ImageNoteProps {
   panOffset: PanOffset;
   zoomLevel: number;
   currentPenType: PenToolType | "";
-  containerRect: ContainerRect | null;
   isPinchZooming: boolean;
 }
 

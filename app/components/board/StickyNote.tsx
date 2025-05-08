@@ -21,8 +21,6 @@ interface ResizeStartInfo {
 interface StickyNoteProps {
   note: StickyNoteData;
   onUpdate: (updatedNote: StickyNoteData, isTemporary?: boolean) => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
   onSelectItem: (type: ItemType, id: number) => void;
   isEditing: boolean;
   onEdit: () => void;
@@ -30,8 +28,6 @@ interface StickyNoteProps {
   panOffset: PanOffset;
   zoomLevel: number;
   currentPenType: PenToolType | "";
-  onItemEraserClick: (itemType: ItemType, itemId: number) => void;
-  containerRect: ContainerRect | null;
   isPinchZooming: boolean;
 }
 
@@ -59,8 +55,6 @@ const StickyNote: React.FC<StickyNoteProps> = ({
   panOffset,
   zoomLevel,
   currentPenType,
-  onItemEraserClick,
-  containerRect,
   isPinchZooming,
 }) => {
   const [content, setContent] = useState(note.content);
@@ -124,7 +118,9 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     if (isPinchZooming || currentPenType !== "" || isEditing) {
       return;
     }
-    onSelectItem("note", note.id);
+    if (!note.isSelected) {
+      onSelectItem("note", note.id);
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -160,6 +156,9 @@ const StickyNote: React.FC<StickyNoteProps> = ({
       const touch = e.touches[0];
       setIsDragging(true);
       setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: note.x, itemStartY: note.y });
+      if (!note.isSelected) {
+        onSelectItem("note", note.id);
+      }
     }
   };
 

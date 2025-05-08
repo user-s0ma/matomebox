@@ -18,8 +18,6 @@ interface TextResizeStartInfo {
 interface TextNoteProps {
   text: TextNoteData;
   onUpdate: (updatedText: TextNoteData, isTemporary?: boolean) => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
   onSelectItem: (type: ItemType, id: number) => void;
   isEditing: boolean;
   onEdit: () => void;
@@ -27,8 +25,6 @@ interface TextNoteProps {
   panOffset: PanOffset;
   zoomLevel: number;
   currentPenType: PenToolType | "";
-  onItemEraserClick: (itemType: ItemType, itemId: number) => void;
-  containerRect: ContainerRect | null;
   isPinchZooming: boolean;
 }
 
@@ -104,11 +100,19 @@ const TextNote: React.FC<TextNoteProps> = ({
     if (isPinchZooming || currentPenType !== "" || isEditing) {
       return;
     }
-    onSelectItem("text", text.id);
+    if (!text.isSelected) {
+      onSelectItem("text", text.id);
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (isPinchZooming || currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
+    if (
+      isPinchZooming ||
+      currentPenType !== "" ||
+      isEditing ||
+      isResizing ||
+      (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))
+    ) {
       return;
     }
     e.stopPropagation();
@@ -120,15 +124,24 @@ const TextNote: React.FC<TextNoteProps> = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-     if (isPinchZooming || currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
+    if (
+      isPinchZooming ||
+      currentPenType !== "" ||
+      isEditing ||
+      isResizing ||
+      (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))
+    ) {
       return;
     }
-     if (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle")) {
+    if (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle")) {
     } else {
-        e.stopPropagation();
-        const touch = e.touches[0];
-        setIsDragging(true);
-        setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: text.x, itemStartY: text.y });
+      e.stopPropagation();
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: text.x, itemStartY: text.y });
+      if (!text.isSelected) {
+        onSelectItem("text", text.id);
+      }
     }
   };
 
@@ -214,10 +227,9 @@ const TextNote: React.FC<TextNoteProps> = ({
 
   const handleTouchTap = (e: React.TouchEvent) => {
     if (isDragging || isResizing || isPinchZooming) {
-        return;
+      return;
     }
     e.stopPropagation();
-
 
     if (currentPenType !== "" || isEditing) {
       return;
@@ -252,9 +264,8 @@ const TextNote: React.FC<TextNoteProps> = ({
   const minHeightStyle = isEditing
     ? "30px"
     : size.height === "auto"
-      ? "auto"
-      : `${(typeof size.height === "number" ? size.height : (parseFloat(text.fontSize) * 1.2) / zoomLevel) * zoomLevel}px`;
-
+    ? "auto"
+    : `${(typeof size.height === "number" ? size.height : (parseFloat(text.fontSize) * 1.2) / zoomLevel) * zoomLevel}px`;
 
   const cursorStyle = currentPenType !== "" ? "auto" : isDragging ? "grabbing" : isEditing ? "text" : "grab";
 
@@ -323,7 +334,7 @@ const TextNote: React.FC<TextNoteProps> = ({
       {showBorder && (
         <div
           className="resize-handle absolute w-3 h-3 rounded-full bg-blue-500 border-1 border-white shadow-md right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 cursor-ew-resize"
-          style={{ zIndex: (text.zIndex || 0) + 1, transform: `translate(50%, -50%) scale(${1/zoomLevel})` }}
+          style={{ zIndex: (text.zIndex || 0) + 1, transform: `translate(50%, -50%) scale(${1 / zoomLevel})` }}
           onMouseDown={(e) => handleResizeMouseDown(e, "right")}
           onTouchStart={(e) => handleResizeTouchStart(e, "right")}
         />

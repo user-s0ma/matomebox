@@ -14,7 +14,6 @@ interface DrawLineProps {
   isSelected: boolean;
   onSelect: (type: ItemType, id: number) => void;
   onUpdate: (updatedLine: DrawLineData, isTemporary?: boolean) => void;
-  onDelete: () => void;
   panOffset: PanOffset;
   zoomLevel: number;
   currentPenType: PenToolType | "";
@@ -126,6 +125,14 @@ const DrawLine: React.FC<DrawLineProps> = ({
     setBoundingBox(getBoundingBoxForSVGTransform(line.points));
   }, [line.points, line.width, line.penType, panOffset, zoomLevel, getBoundingBoxForSVGTransform]);
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isPinchZooming || currentPenType !== "") return;
+    if (!line.isSelected) {
+      onSelect("line", line.id);
+    }
+  };
+
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent, clientX: number, clientY: number) => {
     if (isPinchZooming) return;
 
@@ -148,7 +155,9 @@ const DrawLine: React.FC<DrawLineProps> = ({
     }
     setIsDragging(true);
     setDragStart({ screenX: clientX, screenY: clientY, pointsStart: line.points.map((p) => ({ ...p })) });
-    onSelect("line", line.id);
+    if (!line.isSelected) {
+      onSelect("line", line.id);
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => handleInteractionStart(e, e.clientX, e.clientY);
@@ -225,6 +234,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
         overflow: "visible",
         pointerEvents: "none",
       }}
+      onClick={handleClick}
     >
       <path
         d={getPathDataForSVG()}
