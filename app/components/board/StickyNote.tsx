@@ -43,29 +43,11 @@ const getBrightness = (hexColor: string): number => {
   return (r * 299 + g * 587 + b * 114) / 1000;
 };
 
-const screenToWorld = (screenX: number, screenY: number, panOffset: PanOffset, zoomLevel: number, containerRect: ContainerRect | null): Point => {
-  if (!containerRect) return { x: 0, y: 0 };
-  return {
-    x: (screenX - containerRect.left) / zoomLevel + panOffset.x,
-    y: (screenY - containerRect.top) / zoomLevel + panOffset.y,
-  };
-};
-
 const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset, zoomLevel: number): Point => {
   return {
     x: (worldX - panOffset.x) * zoomLevel,
     y: (worldY - panOffset.y) * zoomLevel,
   };
-};
-
-interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-const isPointInRect = (point: Point, rect: Rect): boolean => {
-  return point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 };
 
 // --- StickyNote Component ---
@@ -346,7 +328,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     <div
       ref={noteRef}
       id={`note-${note.id}`}
-      className="absolute shadow-2xl p-4 flex flex-col items-center justify-center"
+      className="absolute shadow-2xl flex flex-col items-center justify-center"
       style={{
         transform: `translate(${screenPos.x}px, ${screenPos.y}px)`,
         transformOrigin: "top left",
@@ -356,7 +338,6 @@ const StickyNote: React.FC<StickyNoteProps> = ({
         zIndex: note.zIndex,
         cursor: cursorStyle,
         fontSize: `calc(${note.fontSize} * ${zoomLevel})`,
-        lineHeight: `calc(1.2 * ${zoomLevel})`,
       }}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
@@ -366,7 +347,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     >
       {isEditing ? (
         <textarea
-          className="w-full h-full bg-transparent p-2 rounded-md resize-none border-none focus:outline-none focus:ring-0 placeholder-gray-400"
+          className="w-full h-full bg-transparent rounded-md resize-none border-none focus:outline-none focus:ring-0 placeholder-gray-400"
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           onBlur={handleTextareaBlur}

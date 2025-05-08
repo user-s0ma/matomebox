@@ -32,29 +32,11 @@ interface TextNoteProps {
   containerRect: ContainerRect | null;
 }
 
-const screenToWorld = (screenX: number, screenY: number, panOffset: PanOffset, zoomLevel: number, containerRect: ContainerRect | null): Point => {
-  if (!containerRect) return { x: 0, y: 0 };
-  return {
-    x: (screenX - containerRect.left) / zoomLevel + panOffset.x,
-    y: (screenY - containerRect.top) / zoomLevel + panOffset.y,
-  };
-};
-
 const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset, zoomLevel: number): Point => {
   return {
     x: (worldX - panOffset.x) * zoomLevel,
     y: (worldY - panOffset.y) * zoomLevel,
   };
-};
-
-interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-const isPointInRect = (point: Point, rect: Rect): boolean => {
-  return point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 };
 
 const TextNote: React.FC<TextNoteProps> = ({
@@ -268,7 +250,7 @@ const TextNote: React.FC<TextNoteProps> = ({
     <div
       ref={textRef}
       id={`text-${text.id}`}
-      className={`absolute p-1 group 
+      className={`absolute group 
                   ${showBorder ? "ring-1 ring-blue-500" : "ring-1 ring-transparent hover:ring-gray-600"} 
                   ${isDragging ? "shadow-lg" : ""}`}
       style={{
@@ -280,7 +262,6 @@ const TextNote: React.FC<TextNoteProps> = ({
         zIndex: text.zIndex,
         cursor: cursorStyle,
         fontSize: `calc(${text.fontSize} * ${zoomLevel})`,
-        lineHeight: `calc(1.2 * ${zoomLevel})`,
       }}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
@@ -290,7 +271,7 @@ const TextNote: React.FC<TextNoteProps> = ({
     >
       {isEditing ? (
         <textarea
-          className="w-full h-full p-1 resize-none bg-transparent border-none focus:outline-none focus:ring-0 placeholder-gray-500"
+          className="w-full h-full resize-none bg-transparent border-none focus:outline-none focus:ring-0 placeholder-gray-500"
           value={content}
           onChange={(e) => {
             handleContentChange(e.target.value);
@@ -318,7 +299,7 @@ const TextNote: React.FC<TextNoteProps> = ({
         />
       ) : (
         <p
-          className="whitespace-pre-wrap break-words p-1 w-full select-none"
+          className="whitespace-pre-wrap break-words w-full select-none"
           style={{
             textAlign: text.textAlign,
             color: text.color,
