@@ -113,18 +113,17 @@ const StickyNote: React.FC<StickyNoteProps> = ({
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    if (note.isSelected) {
+      e.stopPropagation();
+    }
     e.stopPropagation();
-
-    if (isPinchZooming || currentPenType !== "" || isEditing) {
-      return;
-    }
-    if (!note.isSelected) {
-      onSelectItem("note", note.id);
-    }
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
+    onSelectItem("note", note.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
+      !note.isSelected ||
       isPinchZooming ||
       currentPenType !== "" ||
       isEditing ||
@@ -136,12 +135,10 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     e.stopPropagation();
     setIsDragging(true);
     setDragStart({ screenX: e.clientX, screenY: e.clientY, itemStartX: note.x, itemStartY: note.y });
-    if (!note.isSelected) {
-      onSelectItem("note", note.id);
-    }
   };
   const handleTouchStart = (e: React.TouchEvent) => {
     if (
+      !note.isSelected ||
       isPinchZooming ||
       currentPenType !== "" ||
       isEditing ||
@@ -156,9 +153,6 @@ const StickyNote: React.FC<StickyNoteProps> = ({
       const touch = e.touches[0];
       setIsDragging(true);
       setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: note.x, itemStartY: note.y });
-      if (!note.isSelected) {
-        onSelectItem("note", note.id);
-      }
     }
   };
 
@@ -321,9 +315,6 @@ const StickyNote: React.FC<StickyNoteProps> = ({
       lastTouchRef.current = now;
       if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
       touchTimerRef.current = setTimeout(() => {
-        if (!isEditing && currentPenType === "" && !isPinchZooming) {
-          onSelectItem("note", note.id);
-        }
         touchTimerRef.current = null;
       }, DOUBLE_TAP_DELAY);
     }

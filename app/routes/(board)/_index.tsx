@@ -551,25 +551,29 @@ const Dashboard: React.FC = () => {
     if (isTouch && (event as React.TouchEvent<HTMLDivElement>).touches.length > 1) return;
     if (isPinchZooming) return;
 
-    if (isTouch && event.target !== containerRef.current && currentTool === "select_pan") {
-      let isItemTarget = false;
+    const targetElement = event.target as HTMLElement;
+    const isResizeHandleTarget = targetElement.closest(".resize-handle") || targetElement.closest(".resize-handle-img");
+
+    let eventTargetIsItem = false;
+    if (!isResizeHandleTarget && targetElement !== containerRef.current) {
       const allItems = [...notes, ...texts, ...lines, ...images];
       for (const item of allItems) {
         const itemElement = document.getElementById(`${item.type}-${item.id}`);
-        if (itemElement && itemElement.contains(event.target as Node)) {
-          isItemTarget = true;
+        if (itemElement && itemElement.contains(targetElement)) {
+          eventTargetIsItem = true;
           break;
         }
       }
-      if (isItemTarget && !(event.target as HTMLElement).closest(".resize-handle") && !(event.target as HTMLElement).closest(".resize-handle-img")) return;
     }
 
-    if (event.target === containerRef.current && currentTool === "select_pan") {
-      if (isTouch && event.nativeEvent instanceof TouchEvent && event.cancelable) event.preventDefault();
-      setIsPanning(true);
-      setPanStartMouse({ x: clientX, y: clientY });
-      setPanStartOffset({ ...panOffset });
-      handleDeselect();
+    if (currentTool === "select_pan") {
+      if (targetElement === containerRef.current || (eventTargetIsItem && !selectedItem && !isResizeHandleTarget)) {
+        if (isTouch && event.nativeEvent instanceof TouchEvent && event.cancelable) event.preventDefault();
+        setIsPanning(true);
+        setPanStartMouse({ x: clientX, y: clientY });
+        setPanStartOffset({ ...panOffset });
+        handleDeselect();
+      }
     } else if (currentTool === "pen") {
       if (isTouch && event.nativeEvent instanceof TouchEvent && event.cancelable) event.preventDefault();
       setIsDrawing(true);

@@ -66,36 +66,42 @@ const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, pa
   }, [isPinchZooming, isDragging, isResizing]);
 
   const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isPinchZooming || currentPenType !== "") return;
-    if (!image.isSelected) {
-      onSelectItem("image", image.id);
+    if (image.isSelected) {
+      e.stopPropagation();
     }
+    if (isPinchZooming || currentPenType !== "") return;
+    onSelectItem("image", image.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (isPinchZooming || currentPenType !== "" || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))) {
+    if (
+      !image.isSelected ||
+      isPinchZooming ||
+      currentPenType !== "" ||
+      isResizing ||
+      (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))
+    ) {
       return;
     }
     e.stopPropagation();
     setIsDragging(true);
     setDragStart({ screenX: e.clientX, screenY: e.clientY, itemStartX: image.x, itemStartY: image.y });
-    if (!image.isSelected) {
-      onSelectItem("image", image.id);
-    }
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isPinchZooming || currentPenType !== "" || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))) {
+    if (
+      !image.isSelected ||
+      isPinchZooming ||
+      currentPenType !== "" ||
+      isResizing ||
+      (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))
+    ) {
       return;
     }
     e.stopPropagation();
     const touch = e.touches[0];
     setIsDragging(true);
     setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: image.x, itemStartY: image.y });
-    if (!image.isSelected) {
-      onSelectItem("image", image.id);
-    }
   };
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {

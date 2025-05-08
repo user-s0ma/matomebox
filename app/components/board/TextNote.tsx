@@ -95,18 +95,16 @@ const TextNote: React.FC<TextNoteProps> = ({
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (isPinchZooming || currentPenType !== "" || isEditing) {
-      return;
+    if (text.isSelected) {
+      e.stopPropagation();
     }
-    if (!text.isSelected) {
-      onSelectItem("text", text.id);
-    }
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
+    onSelectItem("text", text.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
+      !text.isSelected ||
       isPinchZooming ||
       currentPenType !== "" ||
       isEditing ||
@@ -118,13 +116,11 @@ const TextNote: React.FC<TextNoteProps> = ({
     e.stopPropagation();
     setIsDragging(true);
     setDragStart({ screenX: e.clientX, screenY: e.clientY, itemStartX: text.x, itemStartY: text.y });
-    if (!text.isSelected) {
-      onSelectItem("text", text.id);
-    }
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (
+      !text.isSelected ||
       isPinchZooming ||
       currentPenType !== "" ||
       isEditing ||
@@ -139,9 +135,6 @@ const TextNote: React.FC<TextNoteProps> = ({
       const touch = e.touches[0];
       setIsDragging(true);
       setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: text.x, itemStartY: text.y });
-      if (!text.isSelected) {
-        onSelectItem("text", text.id);
-      }
     }
   };
 
@@ -249,9 +242,6 @@ const TextNote: React.FC<TextNoteProps> = ({
       lastTouchRef.current = now;
       if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
       touchTimerRef.current = setTimeout(() => {
-        if (!isEditing && currentPenType === "" && !isPinchZooming) {
-          onSelectItem("text", text.id);
-        }
         touchTimerRef.current = null;
       }, DOUBLE_TAP_DELAY);
     }

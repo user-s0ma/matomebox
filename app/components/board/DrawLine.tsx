@@ -126,15 +126,15 @@ const DrawLine: React.FC<DrawLineProps> = ({
   }, [line.points, line.width, line.penType, panOffset, zoomLevel, getBoundingBoxForSVGTransform]);
 
   const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isPinchZooming || currentPenType !== "") return;
-    if (!line.isSelected) {
-      onSelect("line", line.id);
+    if (line.isSelected) {
+      e.stopPropagation();
     }
+    if (isPinchZooming || currentPenType !== "") return;
+    onSelect("line", line.id);
   };
 
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent, clientX: number, clientY: number) => {
-    if (isPinchZooming) return;
+    if (!line.isSelected || isPinchZooming) return;
 
     e.stopPropagation();
     if (currentPenType === "eraser" && containerRect) {
@@ -155,9 +155,6 @@ const DrawLine: React.FC<DrawLineProps> = ({
     }
     setIsDragging(true);
     setDragStart({ screenX: clientX, screenY: clientY, pointsStart: line.points.map((p) => ({ ...p })) });
-    if (!line.isSelected) {
-      onSelect("line", line.id);
-    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => handleInteractionStart(e, e.clientX, e.clientY);
