@@ -1,7 +1,7 @@
 // src/components/CanvasRuler.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import type { Point, PanOffset, ContainerRect, RulerConfig } from "./constants";
-import { RULER_THICKNESS_SCREEN } from "./constants";
+import { RULER_THICKNESS_SCREEN, RULER_DEFAULT_SCREEN_LENGTH } from "./constants";
 
 interface CanvasRulerProps {
   panOffset: PanOffset;
@@ -25,99 +25,6 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
 
   const [draggingHandle, setDraggingHandle] = useState<"p1" | "p2" | "body" | null>(null);
   const [dragStartInfo, setDragStartInfo] = useState<RulerDragStartInfo | null>(null);
-
-  const clampPointToScreen = useCallback(
-    (point: Point, margin = 20): Point => {
-      if (!containerRect) return point;
-      return {
-        x: Math.max(containerRect.left + margin, Math.min(point.x, containerRect.left + containerRect.width - margin)),
-        y: Math.max(containerRect.top + margin, Math.min(point.y, containerRect.top + containerRect.height - margin - RULER_THICKNESS_SCREEN)),
-      };
-    },
-    [containerRect]
-  );
-
-  const adjustRulerToBeOnScreen = useCallback(() => {
-    if (!containerRect || draggingHandle) return;
-
-    setRulerConfig((prevConfig) => {
-      let { p1, p2 } = prevConfig;
-      const rulerLength = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-      if (rulerLength === 0) return prevConfig;
-      const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2;
-
-      const margin = 30;
-      let needsAdjustment = false;
-      let dx = 0;
-      let dy = 0;
-
-      if (midX < containerRect.left + margin) {
-        dx = containerRect.left + margin - midX;
-        needsAdjustment = true;
-      } else if (midX > containerRect.left + containerRect.width - margin) {
-        dx = containerRect.left + containerRect.width - margin - midX;
-        needsAdjustment = true;
-      }
-
-      if (midY < containerRect.top + margin) {
-        dy = containerRect.top + margin - midY;
-        needsAdjustment = true;
-      } else if (midY > containerRect.top + containerRect.height - margin - RULER_THICKNESS_SCREEN) {
-        dy = containerRect.top + containerRect.height - margin - RULER_THICKNESS_SCREEN - midY;
-        needsAdjustment = true;
-      }
-
-      const isP1OnScreen = p1.x >= containerRect.left && p1.x <= containerRect.right && p1.y >= containerRect.top && p1.y <= containerRect.bottom;
-      const isP2OnScreen = p2.x >= containerRect.left && p2.x <= containerRect.right && p2.y >= containerRect.top && p2.y <= containerRect.bottom;
-
-      if (!isP1OnScreen && !isP2OnScreen && !needsAdjustment) {
-        const targetMidX = containerRect.left + containerRect.width / 2;
-        const targetMidY = containerRect.top + containerRect.height / 2;
-        dx = targetMidX - midX;
-        dy = targetMidY - midY;
-        needsAdjustment = true;
-      }
-
-      if (needsAdjustment) {
-        const newP1Base = { x: p1.x + dx, y: p1.y + dy };
-        const newP2Base = { x: p2.x + dx, y: p2.y + dy };
-
-        const clampedP1 = clampPointToScreen(newP1Base, 5);
-        const finalP2FromClampedP1 = {
-          x: clampedP1.x + rulerLength * Math.cos(angle),
-          y: clampedP1.y + rulerLength * Math.sin(angle),
-        };
-
-        const clampedP2 = clampPointToScreen(newP2Base, 5);
-        const finalP1FromClampedP2 = {
-          x: clampedP2.x - rulerLength * Math.cos(angle),
-          y: clampedP2.y - rulerLength * Math.sin(angle),
-        };
-
-        const p2ViaP1MidX = (clampedP1.x + finalP2FromClampedP1.x) / 2;
-        const p2ViaP1MidY = (clampedP1.y + finalP2FromClampedP1.y) / 2;
-        const isP2ViaP1Valid =
-          p2ViaP1MidX >= containerRect.left && p2ViaP1MidX <= containerRect.right && p2ViaP1MidY >= containerRect.top && p2ViaP1MidY <= containerRect.bottom;
-
-        const p1ViaP2MidX = (finalP1FromClampedP2.x + clampedP2.x) / 2;
-        const p1ViaP2MidY = (finalP1FromClampedP2.y + clampedP2.y) / 2;
-        const isP1ViaP2Valid =
-          p1ViaP2MidX >= containerRect.left && p1ViaP2MidX <= containerRect.right && p1ViaP2MidY >= containerRect.top && p1ViaP2MidY <= containerRect.bottom;
-
-        if (isP2ViaP1Valid) {
-          return { ...prevConfig, p1: clampedP1, p2: finalP2FromClampedP1 };
-        } else if (isP1ViaP2Valid) {
-          return { ...prevConfig, p1: finalP1FromClampedP2, p2: clampedP2 };
-        } else {
-          return { ...prevConfig, p1: clampedP1, p2: finalP2FromClampedP1 };
-        }
-      }
-      return prevConfig;
-    });
-  }, [containerRect, setRulerConfig, clampPointToScreen, draggingHandle]);
 
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent, handleName: "p1" | "p2" | "body", clientX: number, clientY: number) => {
     e.stopPropagation();
@@ -223,22 +130,6 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
     };
   }, [draggingHandle, dragStartInfo, setRulerConfig]);
 
-  useEffect(() => {
-    if (!draggingHandle && rulerConfig.active && containerRect) {
-      const midX = (rulerConfig.p1.x + rulerConfig.p2.x) / 2;
-      const midY = (rulerConfig.p1.y + rulerConfig.p2.y) / 2;
-      const safetyMargin = 100;
-      if (
-        midX < containerRect.left - safetyMargin ||
-        midX > containerRect.left + containerRect.width + safetyMargin ||
-        midY < containerRect.top - safetyMargin ||
-        midY > containerRect.top + containerRect.height + safetyMargin
-      ) {
-        adjustRulerToBeOnScreen();
-      }
-    }
-  }, [draggingHandle, rulerConfig.active, containerRect, adjustRulerToBeOnScreen, rulerConfig.p1, rulerConfig.p2]);
-
   const p1Screen = rulerConfig.p1;
   const p2Screen = rulerConfig.p2;
 
@@ -304,8 +195,9 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
   const rulerBodyWidth = (endTickIndex - startTickIndex + 1) * currentTickScreenSpacing;
 
   const targetScreenMajorTickSpacing = Math.max(50, 3 * currentTickScreenSpacing);
-  let numMinorTicksPerMajor = Math.round(targetScreenMajorTickSpacing / currentTickScreenSpacing);
+  let numMinorTicksPerMajor = currentTickScreenSpacing > 0 ? Math.round(targetScreenMajorTickSpacing / currentTickScreenSpacing) : 1;
   if (numMinorTicksPerMajor <= 0) numMinorTicksPerMajor = 1;
+
   if (numMinorTicksPerMajor === 3) numMinorTicksPerMajor = currentTickScreenSpacing * 4 < targetScreenMajorTickSpacing * 1.2 ? 4 : 5;
   else if (numMinorTicksPerMajor > 5 && numMinorTicksPerMajor < 8) numMinorTicksPerMajor = 5;
   else if (numMinorTicksPerMajor >= 8 && numMinorTicksPerMajor < 12) numMinorTicksPerMajor = 10;
@@ -330,7 +222,7 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
   const ticks = [];
   if (currentTickScreenSpacing > 0.1 && endTickIndex >= startTickIndex) {
     for (let i = startTickIndex; i <= endTickIndex; i++) {
-      const posLocalX = i * currentTickScreenSpacing; // Position on the ruler's local X-axis
+      const posLocalX = i * currentTickScreenSpacing;
       const isMajorTick = numMinorTicksPerMajor > 0 ? i % numMinorTicksPerMajor === 0 : true;
       const tickLengthRatio = isMajorTick ? majorTickLengthRatio : minorTickLengthRatio;
       const tickActualLength = rulerVisualThickness * tickLengthRatio;

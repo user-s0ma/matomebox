@@ -30,7 +30,6 @@ interface DashboardStorageData {
   lines?: DrawLineData[];
   panOffset?: PanOffset;
   zoomLevel?: number;
-  rulerConfig?: RulerConfig;
 }
 const saveToDatabase = (data: DashboardStorageData): Promise<{ success: boolean; message: string }> => {
   localStorage.setItem("dashboard-data-v8", JSON.stringify(data));
@@ -144,12 +143,8 @@ const Dashboard: React.FC = () => {
         setLines(data.lines || []);
         setPanOffset(data.panOffset || { x: 0, y: 0 });
         setZoomLevel(data.zoomLevel || 1);
-        const loadedRulerConfig = data.rulerConfig;
-        if (loadedRulerConfig && typeof loadedRulerConfig.p1?.x === "number" && typeof loadedRulerConfig.p1?.y === "number") {
-          setRulerConfig(loadedRulerConfig);
-        } else {
-          setRulerConfig({ active: false, p1: initialRulerP1Screen, p2: initialRulerP2Screen });
-        }
+        setRulerConfig({ active: false, p1: initialRulerP1Screen, p2: initialRulerP2Screen });
+
         const maxZ = Math.max(
           0,
           ...(data.notes || []).map((n) => n.zIndex || 0),
@@ -162,23 +157,11 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const dataToSave: DashboardStorageData = { notes, texts, lines, panOffset, zoomLevel, rulerConfig };
-    if (
-      notes.length > 0 ||
-      texts.length > 0 ||
-      lines.length > 0 ||
-      panOffset.x !== 0 ||
-      panOffset.y !== 0 ||
-      zoomLevel !== 1 ||
-      rulerConfig.active ||
-      rulerConfig.p1.x !== initialRulerP1Screen.x ||
-      rulerConfig.p1.y !== initialRulerP1Screen.y ||
-      rulerConfig.p2.x !== initialRulerP2Screen.x ||
-      rulerConfig.p2.y !== initialRulerP2Screen.y
-    ) {
+    const dataToSave: DashboardStorageData = { notes, texts, lines, panOffset, zoomLevel };
+    if (notes.length > 0 || texts.length > 0 || lines.length > 0 || panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1) {
       saveToDatabase(dataToSave);
     }
-  }, [notes, texts, lines, panOffset, zoomLevel, rulerConfig, initialRulerP1Screen, initialRulerP2Screen]);
+  }, [notes, texts, lines, panOffset, zoomLevel]);
 
   const getNextZIndex = (): number => {
     const newZ = highestZIndex + 1;
@@ -761,7 +744,23 @@ const Dashboard: React.FC = () => {
             setCurrentTool("select_pan");
           }}
           rulerActive={rulerConfig.active}
-          setRulerActive={(val) => setRulerConfig((prev) => ({ ...prev, active: val }))}
+          setRulerActive={(val) =>
+            setRulerConfig((prev) => {
+              if (!val) return { ...prev, active: val };
+              const viewportCenterX = (containerRect?.left || 0) + (containerRect?.width || 0) / 2;
+              const viewportCenterY = (containerRect?.top || 0) + (containerRect?.height || 0) / 2;
+
+              const newP1: Point = {
+                x: viewportCenterX - RULER_DEFAULT_SCREEN_LENGTH / 2,
+                y: viewportCenterY,
+              };
+              const newP2: Point = {
+                x: viewportCenterX + RULER_DEFAULT_SCREEN_LENGTH / 2,
+                y: viewportCenterY,
+              };
+              return { ...prev, active: val, p1: newP1, p2: newP2 };
+            })
+          }
         />
       )}
       {selectedItem && !editingItem && currentTool === "select_pan" && (

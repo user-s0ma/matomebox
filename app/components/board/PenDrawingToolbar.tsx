@@ -15,13 +15,11 @@ interface PenDrawingToolbarProps {
   setRulerActive: (active: boolean) => void;
 }
 
-// --- Constants for PenDrawingToolbar ---
 const lineThicknessValues: number[] = [1, 2, 4, 7, 10, 15];
 const HIGHLIGHTER_THICKNESS: number = 20;
 
 const iconButtonClass = "h-10 w-10 p-2 rounded-full flex items-center justify-center";
 
-// --- PenDrawingToolbar Component ---
 const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
   currentPenType,
   setCurrentPenType,
@@ -74,7 +72,6 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center space-x-1">
-        {/* Added mx-auto for centering */}
         <div className="relative">
           <button
             onClick={() => {
@@ -89,7 +86,6 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
           </button>
           {showPenColorPicker && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black rounded-xl shadow-2xl p-3 z-20 w-28">
-              {/* Centered picker */}
               <div className="grid grid-cols-3 gap-2">
                 {colorValues.map((colorValue) => (
                   <button
@@ -115,20 +111,19 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
             }}
             className={`${iconButtonClass} hover:bg-gray-500 text-xs px-2 min-w-[60px]`}
             title="ペンの太さ"
-            disabled={currentPenType === "eraser" || currentPenType === "ruler" || currentPenType === "highlighter"} // Thickness not manually adjustable for eraser/ruler/highlighter
+            disabled={currentPenType === "eraser" || currentPenType === "ruler" || currentPenType === "highlighter"}
           >
             <Settings2 size={14} className="mr-1.5" />
             {currentPenType === "highlighter" ? HIGHLIGHTER_THICKNESS : drawingWidth}px
           </button>
           {showPenThicknessPicker && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 bg-black rounded-lg shadow-2xl p-1 space-y-0.5 z-20">
-              {/* Centered picker */}
               {lineThicknessValues.map((thicknessValue) => (
                 <button
                   key={thicknessValue}
                   onClick={() => {
                     setDrawingWidth(thicknessValue);
-                    if (currentPenType === "highlighter") setCurrentPenType("pen"); // Switch from highlighter if thickness changes
+                    if (currentPenType === "highlighter") setCurrentPenType("pen");
                     closeAllPickers();
                   }}
                   className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 text-white ${drawingWidth === thicknessValue && currentPenType !== "highlighter" ? "bg-blue-600" : ""}`}
