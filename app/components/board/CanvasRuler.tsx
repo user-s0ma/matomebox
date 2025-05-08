@@ -244,8 +244,8 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
 
   const dxScreen = p2Screen.x - p1Screen.x;
   const dyScreen = p2Screen.y - p1Screen.y;
-  const lengthScreen = Math.sqrt(dxScreen * dxScreen + dyScreen * dyScreen);
-  const angleDeg = lengthScreen === 0 ? 0 : Math.atan2(dyScreen, dxScreen) * (180 / Math.PI);
+  const angleRad = Math.atan2(dyScreen, dxScreen);
+  const angleDeg = angleRad * (180 / Math.PI);
 
   const rulerVisualThickness = RULER_THICKNESS_SCREEN;
 
@@ -258,7 +258,6 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
   else if (rawWorldInterval / E10 >= 2.5) tickIntervalWorld = 2.5 * E10;
   else if (rawWorldInterval / E10 >= 2) tickIntervalWorld = 2 * E10;
   else tickIntervalWorld = 1 * E10;
-
   if (tickIntervalWorld <= 0) tickIntervalWorld = 1;
 
   let currentTickScreenSpacing = tickIntervalWorld * zoomLevel;
@@ -270,17 +269,43 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
     currentTickScreenSpacing = tickIntervalWorld * zoomLevel;
   }
 
-  if (tickIntervalWorld <= 0 || currentTickScreenSpacing <= 0 || isNaN(currentTickScreenSpacing)) {
+  if (tickIntervalWorld <= 0 || currentTickScreenSpacing <= 0.1 || isNaN(currentTickScreenSpacing)) {
     tickIntervalWorld = 10 / zoomLevel;
     currentTickScreenSpacing = 10;
   }
 
-  const numTicks = currentTickScreenSpacing > 1 && lengthScreen > 0 ? Math.floor(lengthScreen / currentTickScreenSpacing) : 0;
+  const cos_a = Math.cos(angleRad);
+  const sin_a = Math.sin(angleRad);
+
+  const svgScreenCorners = [
+    { x: 0, y: 0 },
+    { x: containerRect.width, y: 0 },
+    { x: containerRect.width, y: containerRect.height },
+    { x: 0, y: containerRect.height },
+  ];
+
+  const svgP1X = p1Screen.x - containerRect.left;
+  const svgP1Y = p1Screen.y - containerRect.top;
+
+  const localXCoords = svgScreenCorners.map((corner) => {
+    const dSvgX = corner.x - svgP1X;
+    const dSvgY = corner.y - svgP1Y;
+    return dSvgX * cos_a + dSvgY * sin_a;
+  });
+
+  const minVisibleLocalX = Math.min(...localXCoords);
+  const maxVisibleLocalX = Math.max(...localXCoords);
+
+  const tickMargin = 2;
+  const startTickIndex = Math.floor(minVisibleLocalX / currentTickScreenSpacing) - tickMargin;
+  const endTickIndex = Math.ceil(maxVisibleLocalX / currentTickScreenSpacing) + tickMargin;
+
+  const rulerBodyX = startTickIndex * currentTickScreenSpacing - currentTickScreenSpacing / 2;
+  const rulerBodyWidth = (endTickIndex - startTickIndex + 1) * currentTickScreenSpacing;
 
   const targetScreenMajorTickSpacing = Math.max(50, 3 * currentTickScreenSpacing);
-  let numMinorTicksPerMajor = currentTickScreenSpacing > 0 ? Math.round(targetScreenMajorTickSpacing / currentTickScreenSpacing) : 1;
+  let numMinorTicksPerMajor = Math.round(targetScreenMajorTickSpacing / currentTickScreenSpacing);
   if (numMinorTicksPerMajor <= 0) numMinorTicksPerMajor = 1;
-
   if (numMinorTicksPerMajor === 3) numMinorTicksPerMajor = currentTickScreenSpacing * 4 < targetScreenMajorTickSpacing * 1.2 ? 4 : 5;
   else if (numMinorTicksPerMajor > 5 && numMinorTicksPerMajor < 8) numMinorTicksPerMajor = 5;
   else if (numMinorTicksPerMajor >= 8 && numMinorTicksPerMajor < 12) numMinorTicksPerMajor = 10;
@@ -295,22 +320,55 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
   const rulerBodyStrokeColor = "rgba(180, 180, 180, 0.6)";
   const tickStrokeColor = "rgba(60, 60, 60, 0.4)";
   const labelFillColor = "rgba(60, 60, 60, 0.6)";
-
   const fixedFontSize = 10;
   const minorTickStrokeWidth = 0.5;
   const majorTickStrokeWidth = 1;
   const bodyStrokeWidth = 1;
-
   const minorTickLengthRatio = 0.1;
   const majorTickLengthRatio = 0.2;
 
+  const ticks = [];
+  if (currentTickScreenSpacing > 0.1 && endTickIndex >= startTickIndex) {
+    for (let i = startTickIndex; i <= endTickIndex; i++) {
+      const posLocalX = i * currentTickScreenSpacing; // Position on the ruler's local X-axis
+      const isMajorTick = numMinorTicksPerMajor > 0 ? i % numMinorTicksPerMajor === 0 : true;
+      const tickLengthRatio = isMajorTick ? majorTickLengthRatio : minorTickLengthRatio;
+      const tickActualLength = rulerVisualThickness * tickLengthRatio;
+
+      ticks.push(
+        <g key={`tick-group-${i}`}>
+          <line
+            x1={posLocalX}
+            y1="0"
+            x2={posLocalX}
+            y2={tickActualLength}
+            stroke={tickStrokeColor}
+            strokeWidth={isMajorTick ? majorTickStrokeWidth : minorTickStrokeWidth}
+          />
+          {isMajorTick && (
+            <text
+              x={posLocalX + 3}
+              y={tickActualLength + 3}
+              fill={labelFillColor}
+              fontSize={`${fixedFontSize}px`}
+              textAnchor="start"
+              dominantBaseline="hanging"
+            >
+              {(i * tickIntervalWorld).toFixed(tickLabelPrecision)}
+            </text>
+          )}
+        </g>
+      );
+    }
+  }
+
   return (
     <svg ref={ref} className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 10000, userSelect: "none" }}>
-      <g transform={`translate(${p1Screen.x - containerRect.left}, ${p1Screen.y - containerRect.top}) rotate(${angleDeg})`}>
+      <g transform={`translate(${svgP1X}, ${svgP1Y}) rotate(${angleDeg})`}>
         <rect
-          x="0"
+          x={rulerBodyX}
           y="0"
-          width={lengthScreen}
+          width={rulerBodyWidth}
           height={rulerVisualThickness}
           fill={rulerBodyFillColor}
           stroke={rulerBodyStrokeColor}
@@ -320,44 +378,11 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
           onMouseDown={(e) => handleMouseDown(e, "body")}
           onTouchStart={(e) => handleTouchStart(e, "body")}
         />
-        {Array.from({ length: numTicks + 1 }).map((_, i) => {
-          const posScreenRelative = i * currentTickScreenSpacing;
-          if (posScreenRelative > lengthScreen + 0.1 && lengthScreen > 0) return null;
-
-          const isMajorTick = numMinorTicksPerMajor > 0 ? i % numMinorTicksPerMajor === 0 : true;
-
-          const tickLengthRatio = isMajorTick ? majorTickLengthRatio : minorTickLengthRatio;
-          const tickActualLength = rulerVisualThickness * tickLengthRatio;
-
-          return (
-            <g key={`tick-group-${i}`}>
-              <line
-                x1={posScreenRelative}
-                y1="0"
-                x2={posScreenRelative}
-                y2={tickActualLength}
-                stroke={tickStrokeColor}
-                strokeWidth={isMajorTick ? majorTickStrokeWidth : minorTickStrokeWidth}
-              />
-              {isMajorTick && (
-                <text
-                  x={posScreenRelative + 3}
-                  y={tickActualLength + 3}
-                  fill={labelFillColor}
-                  fontSize={`${fixedFontSize}px`}
-                  textAnchor="start"
-                  dominantBaseline="hanging"
-                >
-                  {(i * tickIntervalWorld).toFixed(tickLabelPrecision)}
-                </text>
-              )}
-            </g>
-          );
-        })}
+        {ticks}
       </g>
       <circle
-        cx={p1Screen.x - containerRect.left}
-        cy={p1Screen.y - containerRect.top}
+        cx={svgP1X}
+        cy={svgP1Y}
         r="6"
         fill="rgba(0, 122, 255, 0.8)"
         stroke="white"
