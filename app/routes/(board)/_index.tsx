@@ -206,13 +206,13 @@ const Dashboard: React.FC = () => {
   };
 
   const handleDeselect = useCallback(() => {
-    if (editingItem) return;
+    if (editingItem && !isPinchZooming) return;
     setSelectedItem(null);
     setNotes((prev) => prev.map((n) => ({ ...n, isSelected: false })));
     setTexts((prev) => prev.map((t) => ({ ...t, isSelected: false })));
     setLines((prev) => prev.map((l) => ({ ...l, isSelected: false })));
     setImages((prev) => prev.map((i) => ({ ...i, isSelected: false })));
-  }, [editingItem]);
+  }, [editingItem, isPinchZooming]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -679,10 +679,16 @@ const Dashboard: React.FC = () => {
 
     if (touches.length === 2) {
       if (e.cancelable) e.preventDefault();
+
       setIsPinchZooming(true);
       setIsPanning(false);
       setIsDrawing(false);
       setCurrentLinePoints([]);
+
+      if (editingItem) {
+        setEditingItem(null);
+      }
+      handleDeselect();
 
       const t1 = { x: touches[0].clientX, y: touches[0].clientY };
       const t2 = { x: touches[1].clientX, y: touches[1].clientY };
@@ -693,12 +699,7 @@ const Dashboard: React.FC = () => {
       setPinchStartZoom(zoomLevel);
       setPinchStartMidpointScreen(mid);
       setPinchStartPanOffset({ ...panOffset });
-      handleDeselect();
     } else if (touches.length === 1) {
-      if (isPinchZooming) {
-        setIsPinchZooming(false);
-        setPinchStartMidpointScreen(null);
-      }
       handleCanvasInteractionStart(touches[0].clientX, touches[0].clientY, true, e);
     } else {
       if (isPinchZooming) {
@@ -819,96 +820,98 @@ const Dashboard: React.FC = () => {
         onTouchEnd={handleCanvasTouchEnd}
         onTouchCancel={handleCanvasTouchEnd}
       >
-        <div>
-          {notes.map((note) => (
-            <StickyNoteComponent
-              key={note.id}
-              note={note}
-              onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "note"; id: number }, temp)}
-              onDelete={() => handleDeleteItem("note", note.id)}
-              onDuplicate={() => handleDuplicateItem("note", note.id)}
-              onSelectItem={handleSelectItem}
-              isEditing={editingItem?.type === "note" && editingItem?.id === note.id}
-              onEdit={() => handleEditItem("note", note.id)}
-              onSave={handleSaveEditedItem}
-              panOffset={panOffset}
-              zoomLevel={zoomLevel}
-              currentPenType={currentTool === "pen" ? currentPenType : ""}
-              onItemEraserClick={handleItemEraserClick}
-              containerRect={containerRect}
+        {notes.map((note) => (
+          <StickyNoteComponent
+            key={note.id}
+            note={note}
+            onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "note"; id: number }, temp)}
+            onDelete={() => handleDeleteItem("note", note.id)}
+            onDuplicate={() => handleDuplicateItem("note", note.id)}
+            onSelectItem={handleSelectItem}
+            isEditing={editingItem?.type === "note" && editingItem?.id === note.id}
+            onEdit={() => handleEditItem("note", note.id)}
+            onSave={handleSaveEditedItem}
+            panOffset={panOffset}
+            zoomLevel={zoomLevel}
+            currentPenType={currentTool === "pen" ? currentPenType : ""}
+            onItemEraserClick={handleItemEraserClick}
+            containerRect={containerRect}
+            isPinchZooming={isPinchZooming}
+          />
+        ))}
+        {texts.map((text) => (
+          <TextNoteComponent
+            key={text.id}
+            text={text}
+            onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "text"; id: number }, temp)}
+            onDelete={() => handleDeleteItem("text", text.id)}
+            onDuplicate={() => handleDuplicateItem("text", text.id)}
+            onSelectItem={handleSelectItem}
+            isEditing={editingItem?.type === "text" && editingItem?.id === text.id}
+            onEdit={() => handleEditItem("text", text.id)}
+            onSave={handleSaveEditedItem}
+            panOffset={panOffset}
+            zoomLevel={zoomLevel}
+            currentPenType={currentTool === "pen" ? currentPenType : ""}
+            onItemEraserClick={handleItemEraserClick}
+            containerRect={containerRect}
+            isPinchZooming={isPinchZooming}
+          />
+        ))}
+        {lines.map((line) => (
+          <DrawLineComponent
+            key={line.id}
+            line={line}
+            isSelected={selectedItem?.type === "line" && selectedItem?.id === line.id}
+            onSelect={handleSelectItem}
+            onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "line"; id: number }, temp)}
+            onDelete={() => handleDeleteItem("line", line.id)}
+            panOffset={panOffset}
+            zoomLevel={zoomLevel}
+            currentPenType={currentTool === "pen" ? currentPenType : ""}
+            onItemEraserClick={handleItemEraserClick}
+            containerRect={containerRect}
+            isPinchZooming={isPinchZooming}
+          />
+        ))}
+        {images.map((image) => (
+          <ImageNoteComponent
+            key={image.id}
+            image={image}
+            onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "image"; id: number }, temp)}
+            onSelectItem={handleSelectItem}
+            panOffset={panOffset}
+            zoomLevel={zoomLevel}
+            currentPenType={currentTool === "pen" ? currentPenType : ""}
+            containerRect={containerRect}
+            isPinchZooming={isPinchZooming}
+          />
+        ))}
+        {isDrawing && currentTool === "pen" && currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 0 && (
+          <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: highestZIndex + 100 }}>
+            <path
+              d={currentLinePoints.reduce((acc, p, i) => {
+                const screenP = worldToCanvasLocal(p.x, p.y, panOffset, zoomLevel);
+                return acc + (i === 0 ? "M" : "L") + `${screenP.x} ${screenP.y} `;
+              }, "")}
+              stroke={drawingColor}
+              strokeWidth={(currentPenType === "highlighter" ? HIGHLIGHTER_THICKNESS : drawingWidth) * zoomLevel}
+              strokeOpacity={currentPenType === "highlighter" ? 0.4 : 1}
+              fill="none"
+              strokeLinecap={currentPenType === "highlighter" ? "butt" : "round"}
+              strokeLinejoin="round"
             />
-          ))}
-          {texts.map((text) => (
-            <TextNoteComponent
-              key={text.id}
-              text={text}
-              onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "text"; id: number }, temp)}
-              onDelete={() => handleDeleteItem("text", text.id)}
-              onDuplicate={() => handleDuplicateItem("text", text.id)}
-              onSelectItem={handleSelectItem}
-              isEditing={editingItem?.type === "text" && editingItem?.id === text.id}
-              onEdit={() => handleEditItem("text", text.id)}
-              onSave={handleSaveEditedItem}
-              panOffset={panOffset}
-              zoomLevel={zoomLevel}
-              currentPenType={currentTool === "pen" ? currentPenType : ""}
-              onItemEraserClick={handleItemEraserClick}
-              containerRect={containerRect}
-            />
-          ))}
-          {lines.map((line) => (
-            <DrawLineComponent
-              key={line.id}
-              line={line}
-              isSelected={selectedItem?.type === "line" && selectedItem?.id === line.id}
-              onSelect={handleSelectItem}
-              onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "line"; id: number }, temp)}
-              onDelete={() => handleDeleteItem("line", line.id)}
-              panOffset={panOffset}
-              zoomLevel={zoomLevel}
-              currentPenType={currentTool === "pen" ? currentPenType : ""}
-              onItemEraserClick={handleItemEraserClick}
-              containerRect={containerRect}
-            />
-          ))}
-          {images.map((image) => (
-            <ImageNoteComponent
-              key={image.id}
-              image={image}
-              onUpdate={(updated, temp) => updateItem(updated as DashboardItem & { type: "image"; id: number }, temp)}
-              onSelectItem={handleSelectItem}
-              panOffset={panOffset}
-              zoomLevel={zoomLevel}
-              currentPenType={currentTool === "pen" ? currentPenType : ""}
-              containerRect={containerRect}
-            />
-          ))}
-          {isDrawing && currentTool === "pen" && currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 0 && (
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: highestZIndex + 100 }}>
-              <path
-                d={currentLinePoints.reduce((acc, p, i) => {
-                  const screenP = worldToCanvasLocal(p.x, p.y, panOffset, zoomLevel);
-                  return acc + (i === 0 ? "M" : "L") + `${screenP.x} ${screenP.y} `;
-                }, "")}
-                stroke={drawingColor}
-                strokeWidth={(currentPenType === "highlighter" ? HIGHLIGHTER_THICKNESS : drawingWidth) * zoomLevel}
-                strokeOpacity={currentPenType === "highlighter" ? 0.4 : 1}
-                fill="none"
-                strokeLinecap={currentPenType === "highlighter" ? "butt" : "round"}
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </div>
-        <CanvasRuler
-          ref={rulerRef}
-          panOffset={panOffset}
-          zoomLevel={zoomLevel}
-          rulerConfig={rulerConfig}
-          setRulerConfig={setRulerConfig}
-          containerRect={containerRect}
-        />
+          </svg>
+        )}
       </div>
+      <CanvasRuler
+        ref={rulerRef}
+        panOffset={panOffset}
+        zoomLevel={zoomLevel}
+        rulerConfig={rulerConfig}
+        setRulerConfig={setRulerConfig}
+        containerRect={containerRect}
+      />
       {!selectedItem && !editingItem && currentTool === "select_pan" && (
         <div id="main-toolbar" className="bg-black p-2.5 shadow-md flex items-center justify-between select-none flex-shrink-0">
           <div className="flex items-center space-x-2">

@@ -20,6 +20,7 @@ interface DrawLineProps {
   currentPenType: PenToolType | "";
   onItemEraserClick: (itemType: ItemType, itemId: number) => void;
   containerRect: ContainerRect | null;
+  isPinchZooming: boolean;
 }
 
 interface BoundingBox {
@@ -73,10 +74,17 @@ const DrawLine: React.FC<DrawLineProps> = ({
   currentPenType,
   onItemEraserClick,
   containerRect,
+  isPinchZooming,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<LineDragStartInfo>({ screenX: 0, screenY: 0, pointsStart: [] });
+
+  useEffect(() => {
+    if (isPinchZooming && isDragging) {
+      setIsDragging(false);
+    }
+  }, [isPinchZooming, isDragging]);
 
   const getBoundingBoxForSVGTransform = useCallback(
     (currentPointsInWorld: Point[]): BoundingBox => {
@@ -119,6 +127,8 @@ const DrawLine: React.FC<DrawLineProps> = ({
   }, [line.points, line.width, line.penType, panOffset, zoomLevel, getBoundingBoxForSVGTransform]);
 
   const handleInteractionStart = (e: React.MouseEvent | React.TouchEvent, clientX: number, clientY: number) => {
+    if (isPinchZooming) return;
+
     e.stopPropagation();
     if (currentPenType === "eraser" && containerRect) {
       const worldClick = screenToWorld(clientX, clientY, panOffset, zoomLevel, containerRect);
@@ -182,7 +192,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleMouseUpOrTouchEnd);
     };
-  }, [isDragging, dragStart, line, onUpdate, panOffset, zoomLevel]);
+  }, [isDragging, dragStart, line, onUpdate, zoomLevel]);
 
   const getPathDataForSVG = () => {
     if (!line.points || line.points.length < 2) return "";
@@ -209,8 +219,8 @@ const DrawLine: React.FC<DrawLineProps> = ({
       style={{
         transform: `translate(${boundingBox.svgTransformX}px, ${boundingBox.svgTransformY}px) scale(${zoomLevel})`,
         transformOrigin: "top left",
-        width: `${boundingBox.width / zoomLevel}px`,
-        height: `${boundingBox.height / zoomLevel}px`,
+        width: `${Math.max(1, boundingBox.width / zoomLevel)}px`,
+        height: `${Math.max(1, boundingBox.height / zoomLevel)}px`,
         zIndex: line.zIndex,
         overflow: "visible",
         pointerEvents: "none",

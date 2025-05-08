@@ -32,9 +32,9 @@ interface StickyNoteProps {
   currentPenType: PenToolType | "";
   onItemEraserClick: (itemType: ItemType, itemId: number) => void;
   containerRect: ContainerRect | null;
+  isPinchZooming: boolean;
 }
 
-// --- Helper Functions for StickyNote ---
 const getBrightness = (hexColor: string): number => {
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
@@ -49,7 +49,6 @@ const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset
   };
 };
 
-// --- StickyNote Component ---
 const StickyNote: React.FC<StickyNoteProps> = ({
   note,
   onUpdate,
@@ -62,6 +61,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
   currentPenType,
   onItemEraserClick,
   containerRect,
+  isPinchZooming,
 }) => {
   const [content, setContent] = useState(note.content);
   const noteRef = useRef<HTMLDivElement>(null);
@@ -101,26 +101,40 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     }
   }, [note.isSelected, isEditing, isResizing]);
 
+  useEffect(() => {
+    if (isPinchZooming) {
+      if (isDragging) setIsDragging(false);
+      if (isResizing) setIsResizing(false);
+    }
+  }, [isPinchZooming, isDragging, isResizing]);
+
   const handleContentChange = (newContent: string) => setContent(newContent);
   const handleTextareaBlur = () => {
     onUpdate({ ...note, content });
     if (onSave) onSave();
   };
   const handleEditLocal = () => {
+    if (isPinchZooming) return;
     if (onEdit) onEdit();
   };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (currentPenType !== "" || isEditing) {
+    if (isPinchZooming || currentPenType !== "" || isEditing) {
       return;
     }
     onSelectItem("note", note.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
+    if (
+      isPinchZooming ||
+      currentPenType !== "" ||
+      isEditing ||
+      isResizing ||
+      (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))
+    ) {
       return;
     }
     e.stopPropagation();
@@ -131,20 +145,26 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     }
   };
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
+    if (
+      isPinchZooming ||
+      currentPenType !== "" ||
+      isEditing ||
+      isResizing ||
+      (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))
+    ) {
       return;
     }
-    e.stopPropagation();
-    const touch = e.touches[0];
-    setIsDragging(true);
-    setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: note.x, itemStartY: note.y });
-    if (!note.isSelected) {
-      onSelectItem("note", note.id);
+    if (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle")) {
+    } else {
+      e.stopPropagation();
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: note.x, itemStartY: note.y });
     }
   };
 
   const handleResizeMouseDown = (e: React.MouseEvent, handle: string) => {
-    if (currentPenType !== "" || isEditing) return;
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
@@ -159,7 +179,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
     });
   };
   const handleResizeTouchStart = (e: React.TouchEvent, handle: string) => {
-    if (currentPenType !== "" || isEditing) return;
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
     e.stopPropagation();
     e.preventDefault();
     const touch = e.touches[0];
@@ -176,7 +196,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
   };
 
   const handleDoubleClick = (e: React.MouseEvent | React.TouchEvent) => {
-    if (currentPenType !== "" || isEditing) return;
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
     e.stopPropagation();
     handleEditLocal();
   };
@@ -274,12 +294,15 @@ const StickyNote: React.FC<StickyNoteProps> = ({
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleMouseUpOrTouchEnd);
     };
-  }, [isDragging, isResizing, dragStart, resizeStart, size, note, onUpdate, resizeHandle, zoomLevel, panOffset.x, panOffset.y]);
+  }, [isDragging, isResizing, dragStart, resizeStart, size, note, onUpdate, resizeHandle, zoomLevel]);
 
   const touchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTouchRef = useRef(0);
 
   const handleTouchTap = (e: React.TouchEvent) => {
+    if (isDragging || isResizing || isPinchZooming) {
+      return;
+    }
     e.stopPropagation();
 
     if (currentPenType !== "" || isEditing) {
@@ -299,7 +322,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({
       lastTouchRef.current = now;
       if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
       touchTimerRef.current = setTimeout(() => {
-        if (!isEditing && currentPenType === "") {
+        if (!isEditing && currentPenType === "" && !isPinchZooming) {
           onSelectItem("note", note.id);
         }
         touchTimerRef.current = null;
@@ -376,7 +399,9 @@ const StickyNote: React.FC<StickyNoteProps> = ({
               style={{
                 cursor: handle.cursor,
                 zIndex: (note.zIndex || 0) + 1,
-                transform: `${handle.classes.includes("translate") ? handle.classes.substring(handle.classes.indexOf("translate")) : ""} scale(${1 / zoomLevel})`,
+                transform: `${handle.classes.includes("translate") ? handle.classes.substring(handle.classes.indexOf("translate")) : ""} scale(${
+                  1 / zoomLevel
+                })`,
               }}
               onMouseDown={(e) => handleResizeMouseDown(e, handle.name)}
               onTouchStart={(e) => handleResizeTouchStart(e, handle.name)}

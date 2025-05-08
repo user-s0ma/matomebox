@@ -49,9 +49,6 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
     if (type === "ruler") {
       const newRulerActiveState = !rulerActive;
       setRulerActive(newRulerActiveState);
-      if (newRulerActiveState && (currentPenType === "eraser" || currentPenType === "ruler")) {
-        setCurrentPenType("pen");
-      }
     } else {
       setCurrentPenType(type);
       if (type === "highlighter" && drawingWidth !== HIGHLIGHTER_THICKNESS) {

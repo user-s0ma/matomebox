@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { Point, PanOffset, ContainerRect, ItemType, PenToolType, TextNoteData } from "./constants";
 
-// --- Types for TextNote ---
 interface DragStartInfo {
   screenX: number;
   screenY: number;
@@ -30,6 +29,7 @@ interface TextNoteProps {
   currentPenType: PenToolType | "";
   onItemEraserClick: (itemType: ItemType, itemId: number) => void;
   containerRect: ContainerRect | null;
+  isPinchZooming: boolean;
 }
 
 const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset, zoomLevel: number): Point => {
@@ -49,8 +49,7 @@ const TextNote: React.FC<TextNoteProps> = ({
   panOffset,
   zoomLevel,
   currentPenType,
-  onItemEraserClick,
-  containerRect,
+  isPinchZooming,
 }) => {
   const [content, setContent] = useState(text.content);
   const textRef = useRef<HTMLDivElement>(null);
@@ -82,26 +81,34 @@ const TextNote: React.FC<TextNoteProps> = ({
     }
   }, [text.isSelected, isEditing, isResizing]);
 
+  useEffect(() => {
+    if (isPinchZooming) {
+      if (isDragging) setIsDragging(false);
+      if (isResizing) setIsResizing(false);
+    }
+  }, [isPinchZooming, isDragging, isResizing]);
+
   const handleContentChange = (newContent: string) => setContent(newContent);
   const handleTextareaBlur = () => {
     onUpdate({ ...text, content });
     if (onSave) onSave();
   };
   const handleEditLocal = () => {
+    if (isPinchZooming) return;
     if (onEdit) onEdit();
   };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (currentPenType !== "" || isEditing) {
+    if (isPinchZooming || currentPenType !== "" || isEditing) {
       return;
     }
     onSelectItem("text", text.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
+    if (isPinchZooming || currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
       return;
     }
     e.stopPropagation();
@@ -113,20 +120,20 @@ const TextNote: React.FC<TextNoteProps> = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
+     if (isPinchZooming || currentPenType !== "" || isEditing || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle"))) {
       return;
     }
-    e.stopPropagation();
-    const touch = e.touches[0];
-    setIsDragging(true);
-    setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: text.x, itemStartY: text.y });
-    if (!text.isSelected) {
-      onSelectItem("text", text.id);
+     if (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle")) {
+    } else {
+        e.stopPropagation();
+        const touch = e.touches[0];
+        setIsDragging(true);
+        setDragStart({ screenX: touch.clientX, screenY: touch.clientY, itemStartX: text.x, itemStartY: text.y });
     }
   };
 
   const handleResizeMouseDown = (e: React.MouseEvent, handleType: string) => {
-    if (currentPenType !== "" || isEditing) return;
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
@@ -134,7 +141,7 @@ const TextNote: React.FC<TextNoteProps> = ({
     setResizeStart({ screenX: e.clientX, initialWidth: size.width, itemInitialX: text.x });
   };
   const handleResizeTouchStart = (e: React.TouchEvent, handleType: string) => {
-    if (currentPenType !== "" || isEditing) return;
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
     e.stopPropagation();
     e.preventDefault();
     const touch = e.touches[0];
@@ -144,7 +151,7 @@ const TextNote: React.FC<TextNoteProps> = ({
   };
 
   const handleDoubleClick = (e: React.MouseEvent | React.TouchEvent) => {
-    if (currentPenType !== "" || isEditing) return;
+    if (isPinchZooming || currentPenType !== "" || isEditing) return;
     e.stopPropagation();
     handleEditLocal();
   };
@@ -200,13 +207,17 @@ const TextNote: React.FC<TextNoteProps> = ({
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleMouseUpOrTouchEnd);
     };
-  }, [isDragging, isResizing, dragStart, resizeStart, size.width, text, onUpdate, resizeHandle, zoomLevel, panOffset.x, panOffset.y]);
+  }, [isDragging, isResizing, dragStart, resizeStart, size.width, text, onUpdate, resizeHandle, zoomLevel]);
 
   const touchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTouchRef = useRef(0);
 
   const handleTouchTap = (e: React.TouchEvent) => {
+    if (isDragging || isResizing || isPinchZooming) {
+        return;
+    }
     e.stopPropagation();
+
 
     if (currentPenType !== "" || isEditing) {
       return;
@@ -226,7 +237,7 @@ const TextNote: React.FC<TextNoteProps> = ({
       lastTouchRef.current = now;
       if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
       touchTimerRef.current = setTimeout(() => {
-        if (!isEditing && currentPenType === "") {
+        if (!isEditing && currentPenType === "" && !isPinchZooming) {
           onSelectItem("text", text.id);
         }
         touchTimerRef.current = null;
@@ -242,7 +253,8 @@ const TextNote: React.FC<TextNoteProps> = ({
     ? "30px"
     : size.height === "auto"
       ? "auto"
-      : `${(typeof size.height === "number" ? size.height : 30 / zoomLevel) * zoomLevel}px`;
+      : `${(typeof size.height === "number" ? size.height : (parseFloat(text.fontSize) * 1.2) / zoomLevel) * zoomLevel}px`;
+
 
   const cursorStyle = currentPenType !== "" ? "auto" : isDragging ? "grabbing" : isEditing ? "text" : "grab";
 
@@ -311,7 +323,7 @@ const TextNote: React.FC<TextNoteProps> = ({
       {showBorder && (
         <div
           className="resize-handle absolute w-3 h-3 rounded-full bg-blue-500 border-1 border-white shadow-md right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 cursor-ew-resize"
-          style={{ zIndex: (text.zIndex || 0) + 1 }}
+          style={{ zIndex: (text.zIndex || 0) + 1, transform: `translate(50%, -50%) scale(${1/zoomLevel})` }}
           onMouseDown={(e) => handleResizeMouseDown(e, "right")}
           onTouchStart={(e) => handleResizeTouchStart(e, "right")}
         />

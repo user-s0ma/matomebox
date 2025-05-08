@@ -25,6 +25,7 @@ interface ImageNoteProps {
   zoomLevel: number;
   currentPenType: PenToolType | "";
   containerRect: ContainerRect | null;
+  isPinchZooming: boolean;
 }
 
 const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset, zoomLevel: number): Point => {
@@ -34,7 +35,7 @@ const worldToCanvasLocal = (worldX: number, worldY: number, panOffset: PanOffset
   };
 };
 
-const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, panOffset, zoomLevel, currentPenType }) => {
+const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, panOffset, zoomLevel, currentPenType, isPinchZooming }) => {
   const imageRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<DragStartInfo>({ screenX: 0, screenY: 0, itemStartX: 0, itemStartY: 0 });
@@ -58,16 +59,23 @@ const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, pa
     }
   }, [image.isSelected, isResizing]);
 
+  useEffect(() => {
+    if (isPinchZooming) {
+      if (isDragging) setIsDragging(false);
+      if (isResizing) setIsResizing(false);
+    }
+  }, [isPinchZooming, isDragging, isResizing]);
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (currentPenType !== "") return;
+    if (isPinchZooming || currentPenType !== "") return;
     if (!image.isSelected) {
       onSelectItem("image", image.id);
     }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (currentPenType !== "" || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))) {
+    if (isPinchZooming || currentPenType !== "" || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))) {
       return;
     }
     e.stopPropagation();
@@ -79,7 +87,7 @@ const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, pa
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (currentPenType !== "" || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))) {
+    if (isPinchZooming || currentPenType !== "" || isResizing || (e.target instanceof Element && e.target.closest && e.target.closest(".resize-handle-img"))) {
       return;
     }
     e.stopPropagation();
@@ -92,7 +100,7 @@ const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, pa
   };
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
-    if (currentPenType !== "") return;
+    if (isPinchZooming || currentPenType !== "") return;
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
@@ -106,7 +114,7 @@ const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, pa
   };
 
   const handleResizeTouchStart = (e: React.TouchEvent) => {
-    if (currentPenType !== "") return;
+    if (isPinchZooming || currentPenType !== "") return;
     e.stopPropagation();
     e.preventDefault();
     const touch = e.touches[0];
@@ -127,7 +135,7 @@ const ImageNote: React.FC<ImageNoteProps> = ({ image, onUpdate, onSelectItem, pa
 
         let newWidth = resizeStart.initialWidth + worldDx;
         newWidth = Math.max(50 / zoomLevel, newWidth);
-        const newHeight = resizeStart.aspectRatio ? newWidth / resizeStart.aspectRatio : resizeStart.initialHeight
+        const newHeight = resizeStart.aspectRatio ? newWidth / resizeStart.aspectRatio : resizeStart.initialHeight;
 
         setSize({ width: newWidth, height: newHeight });
         onUpdate({ ...image, width: newWidth, height: newHeight }, true);
