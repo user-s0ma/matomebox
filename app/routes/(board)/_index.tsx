@@ -23,24 +23,7 @@ import type {
   RulerConfig,
 } from "@/components/board/constants";
 import { colorValues, RULER_DEFAULT_SCREEN_LENGTH, HIGHLIGHTER_THICKNESS, ERASER_RADIUS_WORLD } from "@/components/board/constants";
-
-interface DashboardStorageData {
-  notes?: StickyNoteData[];
-  texts?: TextNoteData[];
-  lines?: DrawLineData[];
-  images?: ImageItemData[];
-  panOffset?: PanOffset;
-  zoomLevel?: number;
-}
-const saveToDatabase = (data: DashboardStorageData): Promise<{ success: boolean; message: string }> => {
-  localStorage.setItem("dashboard-data-v8", JSON.stringify(data));
-  return new Promise((resolve) => setTimeout(() => resolve({ success: true, message: "データを保存しました" }), 300));
-};
-
-const loadFromDatabase = (): Promise<DashboardStorageData | null> => {
-  const data = localStorage.getItem("dashboard-data-v8");
-  return new Promise((resolve) => setTimeout(() => resolve(data ? JSON.parse(data) : null), 300));
-};
+import { loadDataFromDB, saveDataToDB, type DashboardStorageDataV2 } from "@/components/board/db";
 
 const getDotBackgroundStyle = (panOffset: PanOffset, zoomLevel: number) => ({
   backgroundImage: `radial-gradient(circle, #888 ${1 * zoomLevel}px, transparent ${1 * zoomLevel}px)`,
@@ -138,32 +121,45 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadFromDatabase().then((data) => {
-      if (data) {
-        setNotes(data.notes || []);
-        setTexts(data.texts || []);
-        setLines(data.lines || []);
-        setImages(data.images || []);
-        setPanOffset(data.panOffset || { x: 0, y: 0 });
-        setZoomLevel(data.zoomLevel || 1);
+    loadDataFromDB()
+      .then((data) => {
+        setNotes(data.notes);
+        setTexts(data.texts);
+        setLines(data.lines);
+        setImages(data.images);
+        setPanOffset(data.panOffset);
+        setZoomLevel(data.zoomLevel);
         setRulerConfig({ active: false, p1: initialRulerP1Screen, p2: initialRulerP2Screen });
 
         const maxZ = Math.max(
           0,
-          ...(data.notes || []).map((n) => n.zIndex || 0),
-          ...(data.texts || []).map((t) => t.zIndex || 0),
-          ...(data.lines || []).map((l) => l.zIndex || 0),
-          ...(data.images || []).map((i) => i.zIndex || 0)
+          ...data.notes.map((n) => n.zIndex || 0),
+          ...data.texts.map((t) => t.zIndex || 0),
+          ...data.lines.map((l) => l.zIndex || 0),
+          ...data.images.map((i) => i.zIndex || 0)
         );
         setHighestZIndex(maxZ);
-      }
-    });
+      })
+      .catch((error) => {
+        console.error("Error loading data from DB in component:", error);
+      });
   }, []);
 
   useEffect(() => {
-    const dataToSave: DashboardStorageData = { notes, texts, lines, images, panOffset, zoomLevel };
-    if (notes.length > 0 || texts.length > 0 || lines.length > 0 || images.length > 0 || panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1) {
-      saveToDatabase(dataToSave);
+    const dataToSave: DashboardStorageDataV2 = { notes, texts, lines, images, panOffset, zoomLevel };
+    const hasDataToSave =
+      notes.length > 0 || texts.length > 0 || lines.length > 0 || images.length > 0 || panOffset.x !== 0 || panOffset.y !== 0 || zoomLevel !== 1;
+
+    if (hasDataToSave) {
+      saveDataToDB(dataToSave)
+        .then((response) => {
+          if (!response.success) {
+            console.warn("Failed to save to DB:", response.message);
+          }
+        })
+        .catch((error) => {
+          console.error("Error saving data to DB in component:", error);
+        });
     }
   }, [notes, texts, lines, images, panOffset, zoomLevel]);
 
