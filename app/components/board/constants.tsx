@@ -89,9 +89,6 @@ export const colorValues: string[] = [
   "#FFC0CB",
 ];
 
-// マーカーの太さ
-export const HIGHLIGHTER_THICKNESS = 20;
-
 // 定規の初期長さ
 export const RULER_THICKNESS_SCREEN = 50;
 export const RULER_DEFAULT_SCREEN_LENGTH = 200;

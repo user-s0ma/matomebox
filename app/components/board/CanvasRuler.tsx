@@ -255,7 +255,7 @@ const CanvasRuler = React.forwardRef<SVGSVGElement, CanvasRulerProps>(({ zoomLev
   }
 
   return (
-    <svg ref={ref} className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 10000, userSelect: "none" }}>
+    <svg ref={ref} className="absolute top-0 left-0 w-full h-full pointer-events-none z-[10000] select-none">
       <g transform={`translate(${svgP1X}, ${svgP1Y}) rotate(${angleDeg})`}>
         <rect
           x={rulerBodyX}

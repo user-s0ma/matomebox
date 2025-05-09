@@ -15,8 +15,7 @@ interface PenDrawingToolbarProps {
   setRulerActive: (active: boolean) => void;
 }
 
-const lineThicknessValues: number[] = [1, 2, 4, 7, 10, 15];
-const HIGHLIGHTER_THICKNESS: number = 20;
+const lineThicknessValues: number[] = [2, 5, 10, 15, 20, 30];
 
 const iconButtonClass = "h-10 w-10 p-2 rounded-full flex items-center justify-center";
 
@@ -49,14 +48,15 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
     if (type === "ruler") {
       const newRulerActiveState = !rulerActive;
       setRulerActive(newRulerActiveState);
+      if (!rulerActive) {
+        setCurrentPenType(type);
+      }
     } else {
       setCurrentPenType(type);
-      if (type === "highlighter" && drawingWidth !== HIGHLIGHTER_THICKNESS) {
-        setDrawingWidth(HIGHLIGHTER_THICKNESS);
+      if (type === "highlighter") {
+        setDrawingWidth(15);
       } else if (type === "pen") {
-        if (drawingWidth === HIGHLIGHTER_THICKNESS) {
-          setDrawingWidth(4);
-        }
+        setDrawingWidth(5);
       }
     }
     closeAllPickers();
@@ -65,7 +65,7 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
   return (
     <div
       id="pen-drawing-toolbar"
-      className="p-1 fixed bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 backdrop-blur-md text-white z-[150] flex justify-center items-center rounded-full shadow-2xl space-x-1"
+      className="p-1 fixed bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 backdrop-blur-md text-white z-[10000] flex justify-center items-center rounded-full shadow-2xl space-x-1"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center space-x-1">
@@ -88,7 +88,9 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
                   <button
                     key={colorValue}
                     title={colorValue}
-                    className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${drawingColor === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""}`}
+                    className={`w-6 h-6 rounded-full border border-gray-500 transition-transform hover:scale-110 focus:outline-none ${
+                      drawingColor === colorValue ? "ring-2 ring-white ring-offset-1 ring-offset-black" : ""
+                    }`}
                     style={{ backgroundColor: colorValue }}
                     onClick={() => {
                       setDrawingColor(colorValue);
@@ -108,10 +110,10 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
             }}
             className={`${iconButtonClass} hover:bg-gray-500 text-xs px-2 min-w-[60px]`}
             title="ペンの太さ"
-            disabled={currentPenType === "eraser" || currentPenType === "ruler" || currentPenType === "highlighter"}
+            disabled={currentPenType === "eraser" || currentPenType === "ruler"}
           >
             <Settings2 size={14} className="mr-1.5" />
-            {currentPenType === "highlighter" ? HIGHLIGHTER_THICKNESS : drawingWidth}px
+            {drawingWidth}px
           </button>
           {showPenThicknessPicker && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 bg-black rounded-lg shadow-2xl p-1 space-y-0.5 z-20">
@@ -120,10 +122,11 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
                   key={thicknessValue}
                   onClick={() => {
                     setDrawingWidth(thicknessValue);
-                    if (currentPenType === "highlighter") setCurrentPenType("pen");
                     closeAllPickers();
                   }}
-                  className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 text-white ${drawingWidth === thicknessValue && currentPenType !== "highlighter" ? "bg-blue-600" : ""}`}
+                  className={`w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-gray-500 text-white ${
+                    drawingWidth === thicknessValue && currentPenType !== "highlighter" ? "bg-blue-600" : ""
+                  }`}
                 >
                   {thicknessValue}px
                 </button>
@@ -145,8 +148,8 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
                     ? "bg-white text-gray-500"
                     : "text-gray-300 hover:bg-gray-500 hover:text-white"
                   : currentPenType === tool.type
-                    ? "bg-white text-gray-500"
-                    : "text-gray-300 hover:bg-gray-500 hover:text-white"
+                  ? "bg-white text-gray-500"
+                  : "text-gray-300 hover:bg-gray-500 hover:text-white"
               }`}
           >
             <tool.icon size={20} strokeWidth={currentPenType === tool.type || (tool.type === "ruler" && rulerActive) ? 2.5 : 2} />

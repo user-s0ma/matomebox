@@ -1,7 +1,6 @@
 // src/components/DrawLine.tsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { Point, PanOffset, ContainerRect, PenToolType, ItemType, DrawLineData } from "./constants";
-import { HIGHLIGHTER_THICKNESS } from "./constants";
 
 interface LineDragStartInfo {
   screenX: number;
@@ -99,8 +98,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
         maxY = Math.max(maxY, point.y);
       });
 
-      const basePadding = line.penType === "highlighter" ? HIGHLIGHTER_THICKNESS / 2 : line.width || 2;
-      const paddingWorld = basePadding + 15;
+      const paddingWorld = line.width + 15;
 
       const worldBoundingBoxX = minX - paddingWorld;
       const worldBoundingBoxY = minY - paddingWorld;
@@ -143,10 +141,9 @@ const DrawLine: React.FC<DrawLineProps> = ({
         const p1 = line.points[i];
         const p2 = line.points[i + 1];
         const dist = distancePointToSegment(worldClick, p1, p2);
-        const lineThicknessWorld = line.penType === "highlighter" ? HIGHLIGHTER_THICKNESS : line.width || 2;
         const eraserToleranceWorld = 5;
 
-        if (dist < lineThicknessWorld / 2 + eraserToleranceWorld) {
+        if (dist < line.width / 2 + eraserToleranceWorld) {
           onItemEraserClick("line", line.id);
           return;
         }
@@ -214,7 +211,6 @@ const DrawLine: React.FC<DrawLineProps> = ({
   if (!line.points || line.points.length < 2) return null;
 
   const strokeOpacity = line.penType === "highlighter" ? 0.4 : 1;
-  const effectiveStrokeWidth = line.penType === "highlighter" ? HIGHLIGHTER_THICKNESS : line.width || 2;
   const strokeLineCap = line.penType === "highlighter" ? "butt" : "round";
 
   return (
@@ -236,7 +232,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
       <path
         d={getPathDataForSVG()}
         stroke="transparent"
-        strokeWidth={effectiveStrokeWidth + 20 / zoomLevel}
+        strokeWidth={line.width + 20 / zoomLevel}
         fill="none"
         strokeLinecap={strokeLineCap as "butt" | "round" | "square" | undefined}
         strokeLinejoin="round"
@@ -250,7 +246,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
       <path
         d={getPathDataForSVG()}
         stroke={line.color || "#FFCC00"}
-        strokeWidth={effectiveStrokeWidth}
+        strokeWidth={line.width}
         strokeOpacity={strokeOpacity}
         fill="none"
         strokeLinecap={strokeLineCap as "butt" | "round" | "square" | undefined}
@@ -261,7 +257,7 @@ const DrawLine: React.FC<DrawLineProps> = ({
         <path
           d={getPathDataForSVG()}
           stroke="rgba(0, 122, 255, 0.5)"
-          strokeWidth={effectiveStrokeWidth + 10 / zoomLevel}
+          strokeWidth={line.width + 10 / zoomLevel}
           fill="none"
           strokeLinecap={strokeLineCap as "butt" | "round" | "square" | undefined}
           strokeLinejoin="round"

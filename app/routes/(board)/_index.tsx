@@ -22,7 +22,7 @@ import type {
   DashboardItem,
   RulerConfig,
 } from "@/components/board/constants";
-import { colorValues, RULER_DEFAULT_SCREEN_LENGTH, HIGHLIGHTER_THICKNESS, ERASER_RADIUS_WORLD } from "@/components/board/constants";
+import { colorValues, RULER_DEFAULT_SCREEN_LENGTH, ERASER_RADIUS_WORLD } from "@/components/board/constants";
 import { loadDataFromDB, saveDataToDB, type DashboardStorageDataV2 } from "@/components/board/db";
 
 const getDotBackgroundStyle = (panOffset: PanOffset, zoomLevel: number) => ({
@@ -576,10 +576,24 @@ const Dashboard: React.FC = () => {
       }
     } else if (currentTool === "pen") {
       if (isTouch && event.nativeEvent instanceof TouchEvent && event.cancelable) event.preventDefault();
+      if (currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 1) {
+        const newLine: DrawLineData = {
+          id: Date.now(),
+          type: "line",
+          points: currentLinePoints,
+          color: drawingColor,
+          width: drawingWidth,
+          penType: currentPenType,
+          zIndex: getNextZIndex(),
+          isSelected: false,
+        };
+        setLines((prev) => [...prev, newLine]);
+      }
       setIsDrawing(true);
+
       let startCoords = screenToWorld(clientX, clientY, panOffset, zoomLevel, containerRect);
 
-      if (rulerConfig.active && currentPenType !== "eraser" && currentPenType !== "highlighter") {
+      if (rulerConfig.active && currentPenType !== "eraser") {
         const rulerP1World = screenToWorld(rulerConfig.p1.x, rulerConfig.p1.y, panOffset, zoomLevel, containerRect);
         const rulerP2World = screenToWorld(rulerConfig.p2.x, rulerConfig.p2.y, panOffset, zoomLevel, containerRect);
 
@@ -612,7 +626,7 @@ const Dashboard: React.FC = () => {
       let currentCoords = screenToWorld(clientX, clientY, panOffset, zoomLevel, containerRect);
 
       if (currentPenType !== "eraser") {
-        if (rulerConfig.active && currentPenType !== "highlighter" && currentLinePoints.length > 0) {
+        if (rulerConfig.active && currentLinePoints.length > 0) {
           const firstPointOfStroke = currentLinePoints[0];
           const rulerP1World = screenToWorld(rulerConfig.p1.x, rulerConfig.p1.y, panOffset, zoomLevel, containerRect);
           const rulerP2World = screenToWorld(rulerConfig.p2.x, rulerConfig.p2.y, panOffset, zoomLevel, containerRect);
@@ -637,8 +651,7 @@ const Dashboard: React.FC = () => {
             const s1 = line.points[i];
             const s2 = line.points[i + 1];
             const dist = distancePointToSegment(currentCoords, s1, s2);
-            const lineThicknessWorld = line.penType === "highlighter" ? HIGHLIGHTER_THICKNESS : line.width || 2;
-            if (dist < lineThicknessWorld / 2 + ERASER_RADIUS_WORLD) {
+            if (dist < line.width / 2 + ERASER_RADIUS_WORLD) {
               linesToDelete.add(line.id);
               break;
             }
@@ -661,20 +674,20 @@ const Dashboard: React.FC = () => {
     if (isPinchZooming) return;
 
     if (isDrawing && currentTool === "pen") {
-      setIsDrawing(false);
-      if (currentPenType !== "eraser" && currentLinePoints.length > 1) {
+      if (currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 1) {
         const newLine: DrawLineData = {
           id: Date.now(),
           type: "line",
           points: currentLinePoints,
           color: drawingColor,
-          width: currentPenType === "highlighter" ? HIGHLIGHTER_THICKNESS : drawingWidth,
+          width: drawingWidth,
           penType: currentPenType,
           zIndex: getNextZIndex(),
           isSelected: false,
         };
         setLines((prev) => [...prev, newLine]);
       }
+      setIsDrawing(false);
       setCurrentLinePoints([]);
     } else if (isPanning && currentTool === "select_pan") {
       setIsPanning(false);
@@ -892,7 +905,7 @@ const Dashboard: React.FC = () => {
                 return acc + (i === 0 ? "M" : "L") + `${screenP.x} ${screenP.y} `;
               }, "")}
               stroke={drawingColor}
-              strokeWidth={(currentPenType === "highlighter" ? HIGHLIGHTER_THICKNESS : drawingWidth) * zoomLevel}
+              strokeWidth={drawingWidth * zoomLevel}
               strokeOpacity={currentPenType === "highlighter" ? 0.4 : 1}
               fill="none"
               strokeLinecap={currentPenType === "highlighter" ? "butt" : "round"}
@@ -900,15 +913,17 @@ const Dashboard: React.FC = () => {
             />
           </svg>
         )}
+        {currentTool === "pen" && (
+          <CanvasRuler
+            ref={rulerRef}
+            panOffset={panOffset}
+            zoomLevel={zoomLevel}
+            rulerConfig={rulerConfig}
+            setRulerConfig={setRulerConfig}
+            containerRect={containerRect}
+          />
+        )}
       </div>
-      <CanvasRuler
-        ref={rulerRef}
-        panOffset={panOffset}
-        zoomLevel={zoomLevel}
-        rulerConfig={rulerConfig}
-        setRulerConfig={setRulerConfig}
-        containerRect={containerRect}
-      />
       {!selectedItem && !editingItem && currentTool === "select_pan" && (
         <div id="main-toolbar" className="bg-black p-2.5 shadow-md flex items-center justify-between select-none flex-shrink-0">
           <div className="flex items-center space-x-2">
@@ -953,6 +968,19 @@ const Dashboard: React.FC = () => {
           setDrawingWidth={setDrawingWidth}
           onDone={() => {
             setCurrentTool("select_pan");
+            if (currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 1) {
+              const newLine: DrawLineData = {
+                id: Date.now(),
+                type: "line",
+                points: currentLinePoints,
+                color: drawingColor,
+                width: drawingWidth,
+                penType: currentPenType,
+                zIndex: getNextZIndex(),
+                isSelected: false,
+              };
+              setLines((prev) => [...prev, newLine]);
+            }
           }}
           rulerActive={rulerConfig.active}
           setRulerActive={(val) =>
