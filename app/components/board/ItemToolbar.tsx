@@ -44,7 +44,7 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
   return (
     <div
       id="item-action-toolbar"
-      className="p-1 fixed bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 backdrop-blur-md text-white z-[10000] flex justify-center items-center rounded-full shadow-2xl space-x-1"
+      className="p-1 fixed bottom-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 backdrop-blur-md text-white z-[10000] flex justify-center items-center rounded-full shadow-2xl space-x-1"
       onClick={(e) => e.stopPropagation()}
     >
       {item.type === "note" && (

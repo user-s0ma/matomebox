@@ -811,6 +811,17 @@ const Dashboard: React.FC = () => {
   return (
     <div className="flex flex-col h-dvh antialiased overflow-hidden">
       <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: "none" }} />
+      <div className="bg-black p-2.5 shadow-md flex items-center justify-end select-none flex-shrink-0">
+        <div id="zoom-controls" className="flex items-center space-x-1">
+          <button onClick={() => handleZoomViaButtons("out")} title="縮小" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
+            <ZoomOut size={20} />
+          </button>
+          <span className="text-xs text-gray-400 w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
+          <button onClick={() => handleZoomViaButtons("in")} title="拡大" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
+            <ZoomIn size={20} />
+          </button>
+        </div>
+      </div>
       <div
         ref={containerRef}
         className="flex-grow relative overflow-hidden touch-none"
@@ -912,8 +923,8 @@ const Dashboard: React.FC = () => {
         )}
       </div>
       {!selectedItem && !editingItem && currentTool === "select_pan" && (
-        <div id="main-toolbar" className="bg-black p-2.5 shadow-md flex items-center justify-between select-none flex-shrink-0">
-          <div className="flex items-center space-x-2">
+        <div id="main-toolbar" className="bg-black p-2.5 shadow-md flex items-center justify-center select-none flex-shrink-0">
+          <div className="w-full max-w-2xl flex items-center space-x-2 justify-evenly">
             {[
               {
                 tool: "pen" as "pen",
@@ -929,19 +940,10 @@ const Dashboard: React.FC = () => {
               { tool: "text" as "text", title: "テキスト追加", icon: Type, action: addText },
               { tool: "image" as "image", title: "画像追加", icon: ImageIcon, action: triggerImageUpload },
             ].map(({ tool, title, icon: Icon, action }) => (
-              <button key={tool} title={title} onClick={action} className="p-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-700 hover:text-white">
+              <button key={tool} title={title} onClick={action} className="p-2 rounded-lg transition-colors text-amber-300 hover:bg-gray-700">
                 <Icon size={20} />
               </button>
             ))}
-          </div>
-          <div id="zoom-controls" className="flex items-center space-x-1">
-            <button onClick={() => handleZoomViaButtons("out")} title="縮小" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
-              <ZoomOut size={20} />
-            </button>
-            <span className="text-xs text-gray-400 w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
-            <button onClick={() => handleZoomViaButtons("in")} title="拡大" className="p-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
-              <ZoomIn size={20} />
-            </button>
           </div>
         </div>
       )}
