@@ -1,7 +1,7 @@
 // src/components/CanvasRuler.tsx
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import type { Point, PanOffset, ContainerRect, RulerConfig } from "./constants";
-import { RULER_THICKNESS_SCREEN, RULER_DEFAULT_SCREEN_LENGTH } from "./constants";
+import { RULER_THICKNESS_SCREEN } from "./constants";
 
 interface CanvasRulerProps {
   panOffset: PanOffset;

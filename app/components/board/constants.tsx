@@ -7,6 +7,7 @@ export interface PanOffset extends Point {}
 
 export interface ContainerRect extends DOMRectReadOnly {}
 
+export type MainToolType = "select_pan" | "pen" | "note" | "text" | "image" | "lasso";
 export type ItemType = "note" | "text" | "line" | "image";
 export type PenToolType = "pen" | "highlighter" | "eraser" | "ruler";
 export type TextAlign = "left" | "center" | "right";
@@ -89,7 +90,6 @@ export const colorValues: string[] = [
   "#FFC0CB",
 ];
 
-// 定規の初期長さ
 export const RULER_THICKNESS_SCREEN = 50;
 export const RULER_DEFAULT_SCREEN_LENGTH = 200;
 
