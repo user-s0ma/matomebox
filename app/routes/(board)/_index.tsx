@@ -576,19 +576,6 @@ const Dashboard: React.FC = () => {
       }
     } else if (currentTool === "pen") {
       if (isTouch && event.nativeEvent instanceof TouchEvent && event.cancelable) event.preventDefault();
-      if (currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 1) {
-        const newLine: DrawLineData = {
-          id: Date.now(),
-          type: "line",
-          points: currentLinePoints,
-          color: drawingColor,
-          width: drawingWidth,
-          penType: currentPenType,
-          zIndex: getNextZIndex(),
-          isSelected: false,
-        };
-        setLines((prev) => [...prev, newLine]);
-      }
       setIsDrawing(true);
 
       let startCoords = screenToWorld(clientX, clientY, panOffset, zoomLevel, containerRect);
@@ -968,18 +955,22 @@ const Dashboard: React.FC = () => {
           setDrawingWidth={setDrawingWidth}
           onDone={() => {
             setCurrentTool("select_pan");
-            if (currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 1) {
-              const newLine: DrawLineData = {
-                id: Date.now(),
-                type: "line",
-                points: currentLinePoints,
-                color: drawingColor,
-                width: drawingWidth,
-                penType: currentPenType,
-                zIndex: getNextZIndex(),
-                isSelected: false,
-              };
-              setLines((prev) => [...prev, newLine]);
+            if (isDrawing) {
+              setIsDrawing(false);
+              if (currentPenType !== "eraser" && currentPenType !== "ruler" && currentLinePoints.length > 1) {
+                const newLine: DrawLineData = {
+                  id: Date.now(),
+                  type: "line",
+                  points: currentLinePoints,
+                  color: drawingColor,
+                  width: drawingWidth,
+                  penType: currentPenType,
+                  zIndex: getNextZIndex(),
+                  isSelected: false,
+                };
+                setLines((prev) => [...prev, newLine]);
+              }
+              setCurrentLinePoints([]);
             }
           }}
           rulerActive={rulerConfig.active}

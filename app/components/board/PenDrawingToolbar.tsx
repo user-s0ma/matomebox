@@ -50,6 +50,8 @@ const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
       setRulerActive(newRulerActiveState);
       if (!rulerActive) {
         setCurrentPenType(type);
+      } else if (currentPenType ===  "eraser") {
+        setCurrentPenType("pen");
       }
     } else {
       setCurrentPenType(type);
