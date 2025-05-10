@@ -1023,6 +1023,8 @@ const Dashboard: React.FC = () => {
         setIsGenAiLoading(false);
         return;
       }
+
+      deselectAllItems();
       let firstItemSelectedInStream = false;
       let streamDone = false;
 
@@ -1109,7 +1111,6 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         console.error("Error with fetch stream setup or connection:", error);
       } finally {
-        deselectAllItems();
         setIsGenAiLoading(false);
       }
     },
