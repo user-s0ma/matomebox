@@ -7,8 +7,10 @@ import TextNoteComponent from "@/components/board/TextNote";
 import DrawLineComponent from "@/components/board/DrawLine";
 import ImageNoteComponent from "@/components/board/ImageNote";
 import ItemToolbar from "@/components/board/ItemToolbar";
+import GenAiPanel from "@/components/board/GenAiPanel";
 import PenDrawingToolbar from "@/components/board/PenDrawingToolbar";
 import CanvasRuler from "@/components/board/CanvasRuler";
+import DynamicGradientBorder from "@/components/board/DynamicGradientBorder"; // Added
 import type {
   Point,
   PanOffset,
@@ -167,8 +169,11 @@ const Dashboard: React.FC = () => {
   const [isGroupDragging, setIsGroupDragging] = useState(false);
   const [dragStartGroupData, setDragStartGroupData] = useState<GroupDragStartDataItem[]>([]);
 
+  const [isGenAiPanelVisible, setIsGenAiPanelVisible] = useState(false);
+  const [isGenAiLoading, setIsGenAiLoading] = useState(false);
+
   const justPannedRef = useRef(false);
-  const panMovementThreshold = 5; // Pixels a mouse must move to be considered a pan, not a click
+  const panMovementThreshold = 5;
   const panStartedPointRef = useRef<Point | null>(null);
 
   useEffect(() => {
@@ -260,7 +265,6 @@ const Dashboard: React.FC = () => {
 
   const handleSelectItem = (type: ItemType, id: number) => {
     if (justPannedRef.current) {
-      // justPannedRef.current = false; // Reset immediately after check or in mouseup
       return;
     }
     if (editingItem && (editingItem.id !== id || editingItem.type !== type)) {
@@ -293,17 +297,17 @@ const Dashboard: React.FC = () => {
 
   const handleDeselect = useCallback(() => {
     if (justPannedRef.current) return;
-    if (editingItem && !isPinchZooming) return;
+    if ((editingItem && !isPinchZooming) || isGenAiPanelVisible) return;
     setSelectedItem(null);
     deselectAllItems();
-  }, [editingItem, isPinchZooming, deselectAllItems]);
+  }, [editingItem, isPinchZooming, deselectAllItems, isGenAiPanelVisible]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (justPannedRef.current) {
         return;
       }
-      if (editingItem || isPinchZooming || isLassoDrawing || isGroupDragging) return;
+      if (editingItem || isPinchZooming || isLassoDrawing || isGroupDragging || isGenAiPanelVisible) return;
 
       const target = event.target as Node;
       const itemToolbar = document.getElementById("item-action-toolbar");
@@ -357,6 +361,7 @@ const Dashboard: React.FC = () => {
     isPinchZooming,
     isLassoDrawing,
     isGroupDragging,
+    isGenAiPanelVisible,
   ]);
 
   const addNote = () => {
@@ -719,7 +724,7 @@ const Dashboard: React.FC = () => {
       panStartedPointRef.current &&
       (Math.abs(clientX - panStartedPointRef.current.x) > panMovementThreshold || Math.abs(clientY - panStartedPointRef.current.y) > panMovementThreshold)
     ) {
-      justPannedRef.current = true; // Mark as panned if movement exceeds threshold
+      justPannedRef.current = true;
     }
 
     const worldDx = (clientX - panStartMouse.x) / zoomLevel;
@@ -799,8 +804,8 @@ const Dashboard: React.FC = () => {
   const handleCanvasInteractionEnd = () => {
     if (isPinchZooming) return;
 
-    const wasPanning = isPanning; // Check if panning was active before resetting
-    panStartedPointRef.current = null; // Reset pan start point
+    const wasPanning = isPanning;
+    panStartedPointRef.current = null;
 
     if (isGroupDragging) {
       setIsGroupDragging(false);
@@ -863,9 +868,6 @@ const Dashboard: React.FC = () => {
       setCurrentTool("select_pan");
     }
 
-    // Reset justPannedRef after a very short delay if it was a pan,
-    // to ensure click-like events (e.g., item selection) are not suppressed
-    // if they happen immediately after a pan action (which they shouldn't if pan was significant).
     if (wasPanning) {
       setTimeout(() => {
         justPannedRef.current = false;
@@ -1005,11 +1007,57 @@ const Dashboard: React.FC = () => {
     setPanOffset({ x: newPanX, y: newPanY });
   };
 
+  const extractTextFromSelectedItems = useCallback(() => {
+    const selectedItems = getAllSelectedItems();
+    const textsToExtract: string[] = [];
+    selectedItems.forEach((item) => {
+      if ((item.type === "note" || item.type === "text") && item.content && item.content.trim() !== "") {
+        textsToExtract.push(item.content.trim());
+      }
+    });
+    return textsToExtract.join("\n\n---\n\n");
+  }, [getAllSelectedItems]);
+
+  const handleOpenGenAiPanel = useCallback(() => {
+    setIsGenAiPanelVisible(true);
+  }, []);
+
+  const handleCloseGenAiPanel = useCallback(() => {
+    setIsGenAiPanelVisible(false);
+  }, []);
+
+  const handleSendToGenAi = useCallback(
+    async (promptFromPanel: string) => {
+      setIsGenAiLoading(true);
+      const extractedText = extractTextFromSelectedItems();
+
+      let fullTextForApi = promptFromPanel;
+      if (extractedText) {
+        fullTextForApi += "\n\n--- 対象テキスト ---\n" + extractedText;
+      }
+
+      try {
+        const response = await fetch("/api/board/gen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: fullTextForApi }),
+        });
+        const data = await response.json();
+        console.log("GenAI API Response:", data);
+      } catch (error) {
+        console.error("Error sending to GenAI API:", error);
+      } finally {
+        setIsGenAiLoading(false);
+      }
+    },
+    [extractTextFromSelectedItems]
+  );
+
   const numCurrentlySelected = countSelectedItems();
   const representativeSelectedItem = numCurrentlySelected > 0 ? getAllSelectedItems()[0] || null : selectedItem;
 
   return (
-    <div className="flex flex-col h-dvh antialiased overflow-hidden">
+    <div className="flex flex-col h-dvh antialiased overflow-hidden relative">
       <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: "none" }} />
       <div className="w-full absolute top-0 left-0 p-2.5 flex items-center justify-end select-none z-[10000]">
         <div id="zoom-controls" className="flex items-center space-x-1">
@@ -1149,7 +1197,7 @@ const Dashboard: React.FC = () => {
           />
         )}
       </div>
-      {!representativeSelectedItem && !editingItem && (currentTool === "select_pan" || currentTool === "lasso") && (
+      {!representativeSelectedItem && !editingItem && (currentTool === "select_pan" || currentTool === "lasso") && !isGenAiPanelVisible && (
         <div id="main-toolbar" className="bg-black p-2.5 shadow-md flex items-center justify-center select-none flex-shrink-0">
           <div className="w-full max-w-2xl flex items-center space-x-2 justify-evenly">
             {[
@@ -1188,7 +1236,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
-      {currentTool === "pen" && (
+      {isGenAiPanelVisible && (
+        <div className="fixed inset-0 z-[10000] pointer-events-none">
+          <DynamicGradientBorder />
+        </div>
+      )}
+      {currentTool === "pen" && !isGenAiPanelVisible && (
         <PenDrawingToolbar
           currentPenType={currentPenType}
           setCurrentPenType={setCurrentPenType}
@@ -1229,7 +1282,7 @@ const Dashboard: React.FC = () => {
           }
         />
       )}
-      {representativeSelectedItem && !editingItem && (currentTool === "select_pan" || currentTool === "lasso") && (
+      {representativeSelectedItem && !editingItem && (currentTool === "select_pan" || currentTool === "lasso") && !isGenAiPanelVisible && (
         <ItemToolbar
           item={representativeSelectedItem}
           isGroupSelected={numCurrentlySelected > 1}
@@ -1268,8 +1321,15 @@ const Dashboard: React.FC = () => {
             }
           }}
           onUpdateItem={handleUpdateItemProps}
+          onOpenGenAiPanel={handleOpenGenAiPanel}
         />
       )}
+      <GenAiPanel
+        isVisible={isGenAiPanelVisible}
+        onClose={handleCloseGenAiPanel}
+        onSend={handleSendToGenAi}
+        isLoading={isGenAiLoading}
+      />
     </div>
   );
 };

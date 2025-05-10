@@ -1,6 +1,6 @@
-// src/components/ItemToolbar.tsx
+// src/components/board/ItemToolbar.tsx
 import { useState } from "react";
-import { Trash2, Copy, AlignLeft, AlignCenter, AlignRight, ChevronDown, Settings2 } from "lucide-react";
+import { Trash2, Copy, AlignLeft, AlignCenter, AlignRight, ChevronDown, Settings2, Sparkles } from "lucide-react";
 import type { TextAlign, StickyNoteData, TextNoteData, DrawLineData, DashboardItem } from "./constants";
 import { colorValues } from "./constants";
 
@@ -9,13 +9,14 @@ interface ItemToolbarProps {
   onDelete: () => void;
   onDuplicate: () => void;
   onUpdateItem: (updatedProps: Partial<DashboardItem>) => void;
+  onOpenGenAiPanel: () => void;
   isGroupSelected: boolean;
 }
 
 const fontSizeValues: string[] = ["12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px", "48px"];
 const lineThicknessValues: number[] = [1, 2, 4, 7, 10, 15];
 
-const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, onUpdateItem, isGroupSelected }) => {
+const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, onUpdateItem, onOpenGenAiPanel, isGroupSelected }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontSizePicker, setShowFontSizePicker] = useState(false);
   const [showAlignPicker, setShowAlignPicker] = useState(false);
@@ -49,7 +50,10 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
         className="p-1 fixed bottom-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 backdrop-blur-md text-white z-[10000] flex justify-center items-center rounded-full shadow-2xl space-x-1"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="text-xs text-gray-400 px-3">複数選択中</span>
+        <span className="shrink-0 text-xs text-gray-300 p-2">複数選択中</span>
+        <button className={`${iconButtonClass} hover:bg-gray-500 text-sky-400 hover:text-sky-300`} onClick={onOpenGenAiPanel} title="AIでテキスト処理">
+          <Sparkles size={18} />
+        </button>
         <button className={`${iconButtonClass} hover:bg-gray-500 text-white`} onClick={onDuplicate} title="選択項目を複製">
           <Copy size={18} />
         </button>
@@ -308,6 +312,9 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
           )}
         </>
       )}
+      <button className={`${iconButtonClass} hover:bg-gray-500 text-sky-400 hover:text-sky-300`} onClick={onOpenGenAiPanel} title="AIでテキスト処理">
+        <Sparkles size={18} />
+      </button>
       <button className={`${iconButtonClass} hover:bg-gray-500 text-white`} onClick={onDuplicate} title="複製">
         <Copy size={18} />
       </button>
