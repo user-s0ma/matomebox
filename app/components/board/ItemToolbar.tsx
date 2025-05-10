@@ -26,7 +26,7 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
     onUpdateItem(changedProperties);
   };
 
-  const iconButtonClass = "h-10 w-10 p-2 rounded-full hover:bg-gray-600 transition-colors text-gray-300 hover:text-white flex items-center justify-center";
+  const iconButtonClass = "h-10 w-10 p-2 rounded-full hover:bg-gray-500 transition-colors text-gray-300 hover:text-white flex items-center justify-center";
   const activeIconButtonClass = "bg-blue-600 text-white";
 
   const AlignmentIcon =

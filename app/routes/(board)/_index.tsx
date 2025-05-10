@@ -7,7 +7,7 @@ import TextNoteComponent from "@/components/board/TextNote";
 import DrawLineComponent from "@/components/board/DrawLine";
 import ImageNoteComponent from "@/components/board/ImageNote";
 import ItemToolbar from "@/components/board/ItemToolbar";
-import GenAiPanel from "@/components/board/GenAiPanel";
+import GenAiBar from "@/components/board/GenAiBar";
 import PenDrawingToolbar from "@/components/board/PenDrawingToolbar";
 import CanvasRuler from "@/components/board/CanvasRuler";
 import DynamicGradientBorder from "@/components/board/DynamicGradientBorder"; // Added
@@ -264,9 +264,9 @@ const Dashboard: React.FC = () => {
   }, [notes, texts, lines, images]);
 
   const handleSelectItem = (type: ItemType, id: number) => {
-    if (justPannedRef.current) {
-      return;
-    }
+    if (justPannedRef.current) return;
+    if (isGenAiPanelVisible) return;
+
     if (editingItem && (editingItem.id !== id || editingItem.type !== type)) {
       setEditingItem(null);
     }
@@ -1228,7 +1228,7 @@ const Dashboard: React.FC = () => {
                 key={tool}
                 title={title}
                 onClick={action}
-                className={`p-2 rounded-lg transition-colors hover:bg-gray-700 ${currentTool === tool ? "bg-gray-600 text-white" : "text-amber-300"}`}
+                className={`p-2 rounded-lg transition-colors ${currentTool === tool ? "bg-gray-500 text-white" : "text-amber-300"}`}
               >
                 <Icon size={20} />
               </button>
@@ -1324,12 +1324,7 @@ const Dashboard: React.FC = () => {
           onOpenGenAiPanel={handleOpenGenAiPanel}
         />
       )}
-      <GenAiPanel
-        isVisible={isGenAiPanelVisible}
-        onClose={handleCloseGenAiPanel}
-        onSend={handleSendToGenAi}
-        isLoading={isGenAiLoading}
-      />
+      <GenAiBar isVisible={isGenAiPanelVisible} onClose={handleCloseGenAiPanel} onSend={handleSendToGenAi} isLoading={isGenAiLoading} countSelectedItems={countSelectedItems} />
     </div>
   );
 };
