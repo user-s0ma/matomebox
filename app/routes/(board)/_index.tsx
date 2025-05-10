@@ -1024,7 +1024,6 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      deselectAllItems();
       let firstItemSelectedInStream = false;
       let streamDone = false;
 
