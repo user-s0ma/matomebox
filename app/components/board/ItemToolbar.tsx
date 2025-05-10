@@ -11,12 +11,13 @@ interface ItemToolbarProps {
   onUpdateItem: (updatedProps: Partial<DashboardItem>) => void;
   onOpenGenAiPanel: () => void;
   isGroupSelected: boolean;
+  countSelectedItems: () => number;
 }
 
 const fontSizeValues: string[] = ["12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px", "48px"];
 const lineThicknessValues: number[] = [1, 2, 4, 7, 10, 15];
 
-const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, onUpdateItem, onOpenGenAiPanel, isGroupSelected }) => {
+const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, onUpdateItem, onOpenGenAiPanel, isGroupSelected, countSelectedItems }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontSizePicker, setShowFontSizePicker] = useState(false);
   const [showAlignPicker, setShowAlignPicker] = useState(false);
@@ -26,7 +27,7 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
     onUpdateItem(changedProperties);
   };
 
-  const iconButtonClass = "h-10 w-10 p-2 rounded-full hover:bg-gray-500 transition-colors text-gray-300 hover:text-white flex items-center justify-center";
+  const iconButtonClass = "h-10 w-10 p-2 rounded-full hover:bg-gray-500 hover:text-white flex items-center justify-center";
   const activeIconButtonClass = "bg-blue-600 text-white";
 
   const AlignmentIcon =
@@ -50,7 +51,7 @@ const ItemToolbar: React.FC<ItemToolbarProps> = ({ item, onDelete, onDuplicate, 
         className="p-1 fixed bottom-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 backdrop-blur-md text-white z-[10000] flex justify-center items-center rounded-full shadow-2xl space-x-1"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="shrink-0 text-xs text-gray-300 p-2">複数選択中</span>
+        <span className="shrink-0 text-xs text-gray-300 ml-2">選択: {countSelectedItems()}</span>
         <button className={`${iconButtonClass} hover:bg-gray-500 text-sky-400 hover:text-sky-300`} onClick={onOpenGenAiPanel} title="AIでテキスト処理">
           <Sparkles size={18} />
         </button>

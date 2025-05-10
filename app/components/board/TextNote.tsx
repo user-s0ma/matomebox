@@ -324,7 +324,7 @@ const TextNote: React.FC<TextNoteProps> = ({
       {showBorder && (
         <div
           className="resize-handle absolute w-3 h-3 rounded-full bg-blue-500 border-1 border-white shadow-md right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 cursor-ew-resize"
-          style={{ zIndex: (text.zIndex || 0) + 1, transform: `translate(50%, -50%) scale(${1 / zoomLevel})` }}
+          style={{ zIndex: (text.zIndex || 0) + 1 }}
           onMouseDown={(e) => handleResizeMouseDown(e, "right")}
           onTouchStart={(e) => handleResizeTouchStart(e, "right")}
         />

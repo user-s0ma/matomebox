@@ -88,11 +88,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("リサーチワークフローの開始に失敗しました:", error);
-
-    return new Response(JSON.stringify({ success: false, error: "内部サーバーエラーが発生しました。" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error(error);
+    return Response.json({ success: false, error: "内部サーバーエラーが発生しました。" }, { status: 500 });
   }
 }

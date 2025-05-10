@@ -17,7 +17,7 @@ interface PenDrawingToolbarProps {
 
 const lineThicknessValues: number[] = [2, 5, 10, 15, 20, 30];
 
-const iconButtonClass = "h-10 w-10 p-2 rounded-full flex items-center justify-center";
+const iconButtonClass = "h-10 w-10 p-2 rounded-full hover:bg-gray-500 hover:text-white flex items-center justify-center";
 
 const PenDrawingToolbar: React.FC<PenDrawingToolbarProps> = ({
   currentPenType,

@@ -1007,17 +1007,6 @@ const Dashboard: React.FC = () => {
     setPanOffset({ x: newPanX, y: newPanY });
   };
 
-  const extractTextFromSelectedItems = useCallback(() => {
-    const selectedItems = getAllSelectedItems();
-    const textsToExtract: string[] = [];
-    selectedItems.forEach((item) => {
-      if ((item.type === "note" || item.type === "text") && item.content && item.content.trim() !== "") {
-        textsToExtract.push(item.content.trim());
-      }
-    });
-    return textsToExtract.join("\n\n---\n\n");
-  }, [getAllSelectedItems]);
-
   const handleOpenGenAiPanel = useCallback(() => {
     setIsGenAiPanelVisible(true);
   }, []);
@@ -1029,28 +1018,70 @@ const Dashboard: React.FC = () => {
   const handleSendToGenAi = useCallback(
     async (promptFromPanel: string) => {
       setIsGenAiLoading(true);
-      const extractedText = extractTextFromSelectedItems();
+      const selectedItemsData = getAllSelectedItems();
 
-      let fullTextForApi = promptFromPanel;
-      if (extractedText) {
-        fullTextForApi += "\n\n--- 対象テキスト ---\n" + extractedText;
+      if (selectedItemsData.length === 0 && !promptFromPanel.trim()) {
+        setIsGenAiLoading(false);
+        return;
+      }
+      const response = await fetch("/api/board/gen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemsData: selectedItemsData, prompt: promptFromPanel }),
+      });
+
+      if (!response.ok) {
+        setIsGenAiLoading(false);
+        return;
       }
 
-      try {
-        const response = await fetch("/api/board/gen", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: fullTextForApi }),
+      const itemsPayload = (await response.json()) as Omit<DashboardItem, "id" | "zIndex" | "isSelected">[];
+
+      if (Array.isArray(itemsPayload) && itemsPayload.length > 0) {
+        deselectAllItems();
+
+        const newNotes: StickyNoteData[] = [];
+        const newTexts: TextNoteData[] = [];
+        const newLines: DrawLineData[] = [];
+        const allNewItemsForSelectionState: DashboardItem[] = [];
+
+        itemsPayload.forEach((itemBlueprint) => {
+          const newId = Date.now() + Math.random();
+          const newItemBase: DashboardItem = {
+            ...itemBlueprint,
+            id: newId,
+            zIndex: getNextZIndex(),
+            isSelected: true,
+          } as DashboardItem;
+
+          if (newItemBase.type === "note") {
+            newNotes.push(newItemBase as StickyNoteData);
+          } else if (newItemBase.type === "text") {
+            newTexts.push(newItemBase as TextNoteData);
+          } else if (newItemBase.type === "line") {
+            newLines.push(newItemBase as DrawLineData);
+          }
+          allNewItemsForSelectionState.push(newItemBase);
         });
-        const data = await response.json();
-        console.log("GenAI API Response:", data);
-      } catch (error) {
-        console.error("Error sending to GenAI API:", error);
-      } finally {
-        setIsGenAiLoading(false);
+
+        if (newNotes.length > 0) {
+          setNotes((prev) => [...prev, ...newNotes]);
+        }
+        if (newTexts.length > 0) {
+          setTexts((prev) => [...prev, ...newTexts]);
+        }
+        if (newLines.length > 0) {
+          setLines((prev) => [...prev, ...newLines]);
+        }
+
+        if (allNewItemsForSelectionState.length > 0) {
+          setSelectedItem(allNewItemsForSelectionState[0]);
+        } else {
+          setSelectedItem(null);
+        }
       }
     },
-    [extractTextFromSelectedItems]
+    [getAllSelectedItems, getNextZIndex, deselectAllItems, setNotes, setTexts, setLines, setSelectedItem]
   );
 
   const numCurrentlySelected = countSelectedItems();
@@ -1228,7 +1259,7 @@ const Dashboard: React.FC = () => {
                 key={tool}
                 title={title}
                 onClick={action}
-                className={`p-2 rounded-lg transition-colors ${currentTool === tool ? "bg-gray-500 text-white" : "text-amber-300"}`}
+                className={`p-2 rounded-lg transition-colors ${currentTool === tool ? "bg-gray-500 text-white" : "text-amber-300 hover:bg-gray-500"}`}
               >
                 <Icon size={20} />
               </button>
@@ -1322,9 +1353,16 @@ const Dashboard: React.FC = () => {
           }}
           onUpdateItem={handleUpdateItemProps}
           onOpenGenAiPanel={handleOpenGenAiPanel}
+          countSelectedItems={countSelectedItems}
         />
       )}
-      <GenAiBar isVisible={isGenAiPanelVisible} onClose={handleCloseGenAiPanel} onSend={handleSendToGenAi} isLoading={isGenAiLoading} countSelectedItems={countSelectedItems} />
+      <GenAiBar
+        isVisible={isGenAiPanelVisible}
+        onClose={handleCloseGenAiPanel}
+        onSend={handleSendToGenAi}
+        isLoading={isGenAiLoading}
+        countSelectedItems={countSelectedItems}
+      />
     </div>
   );
 };
