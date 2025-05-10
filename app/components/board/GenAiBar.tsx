@@ -21,6 +21,11 @@ const GenAiPanel: React.FC<GenAiPanelProps> = ({ isVisible, onClose, onSend, isL
     }
   }, [isVisible]);
 
+  const handleSend = () => {
+    onSend(editedText);
+    setEditedText("");
+  };
+
   return (
     <div
       className={`w-[calc(100%_-_16px)] max-w-xl p-1 fixed bottom-2 left-1/2 -translate-x-1/2 bg-black text-white z-[10000] flex justify-center items-center rounded-3xl shadow-2xl space-x-1 transition-transform
@@ -50,7 +55,7 @@ const GenAiPanel: React.FC<GenAiPanelProps> = ({ isVisible, onClose, onSend, isL
           <LoaderCircle size={18} />
         </div>
       ) : (
-        <button onClick={() => onSend(editedText)} className={`${iconButtonClass} bg-white text-black`}>
+        <button onClick={handleSend} className={`${iconButtonClass} bg-white text-black`}>
           <ArrowUp size={18} />
         </button>
       )}
