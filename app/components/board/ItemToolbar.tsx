@@ -1,4 +1,3 @@
-// src/components/board/ItemToolbar.tsx
 import { useState } from "react";
 import { Trash2, Copy, AlignLeft, AlignCenter, AlignRight, ChevronDown, Settings2, Sparkles } from "lucide-react";
 import type { TextAlign, StickyNoteData, TextNoteData, DrawLineData, DashboardItem } from "./constants";

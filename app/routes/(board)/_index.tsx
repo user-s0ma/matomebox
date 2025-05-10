@@ -1,7 +1,6 @@
 // src/Dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Pen, StickyNote, Type, ZoomIn, ZoomOut, Image as ImageIcon, LassoSelect } from "lucide-react";
-
 import StickyNoteComponent from "@/components/board/StickyNote";
 import TextNoteComponent from "@/components/board/TextNote";
 import DrawLineComponent from "@/components/board/DrawLine";
@@ -10,7 +9,7 @@ import ItemToolbar from "@/components/board/ItemToolbar";
 import GenAiBar from "@/components/board/GenAiBar";
 import PenDrawingToolbar from "@/components/board/PenDrawingToolbar";
 import CanvasRuler from "@/components/board/CanvasRuler";
-import DynamicGradientBorder from "@/components/board/DynamicGradientBorder"; // Added
+import DynamicGradientBorder from "@/components/board/DynamicGradientBorder";
 import type {
   Point,
   PanOffset,
@@ -1018,67 +1017,100 @@ const Dashboard: React.FC = () => {
   const handleSendToGenAi = useCallback(
     async (promptFromPanel: string) => {
       setIsGenAiLoading(true);
+
       const selectedItemsData = getAllSelectedItems();
-
-      if (selectedItemsData.length === 0 && !promptFromPanel.trim()) {
+      if (selectedItemsData.length === 0) {
         setIsGenAiLoading(false);
         return;
       }
-      const response = await fetch("/api/board/gen", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemsData: selectedItemsData, prompt: promptFromPanel }),
-      });
+      let firstItemSelectedInStream = false;
+      let streamDone = false;
 
-      if (!response.ok) {
-        setIsGenAiLoading(false);
-        return;
-      }
-
-      const itemsPayload = (await response.json()) as Omit<DashboardItem, "id" | "zIndex" | "isSelected">[];
-
-      if (Array.isArray(itemsPayload) && itemsPayload.length > 0) {
-        deselectAllItems();
-
-        const newNotes: StickyNoteData[] = [];
-        const newTexts: TextNoteData[] = [];
-        const newLines: DrawLineData[] = [];
-        const allNewItemsForSelectionState: DashboardItem[] = [];
-
-        itemsPayload.forEach((itemBlueprint) => {
-          const newId = Date.now() + Math.random();
-          const newItemBase: DashboardItem = {
-            ...itemBlueprint,
-            id: newId,
-            zIndex: getNextZIndex(),
-            isSelected: true,
-          } as DashboardItem;
-
-          if (newItemBase.type === "note") {
-            newNotes.push(newItemBase as StickyNoteData);
-          } else if (newItemBase.type === "text") {
-            newTexts.push(newItemBase as TextNoteData);
-          } else if (newItemBase.type === "line") {
-            newLines.push(newItemBase as DrawLineData);
-          }
-          allNewItemsForSelectionState.push(newItemBase);
+      try {
+        const response = await fetch("/api/board/gen", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+          },
+          body: JSON.stringify({ itemsData: selectedItemsData, prompt: promptFromPanel }),
         });
 
-        if (newNotes.length > 0) {
-          setNotes((prev) => [...prev, ...newNotes]);
+        if (!response.ok) {
+          console.error("Error from GenAI API setup:");
+          setIsGenAiLoading(false);
+          return;
         }
-        if (newTexts.length > 0) {
-          setTexts((prev) => [...prev, ...newTexts]);
-        }
-        if (newLines.length > 0) {
-          setLines((prev) => [...prev, ...newLines]);
+        if (!response.body) {
+          console.error("Response body is null, cannot process stream.");
+          setIsGenAiLoading(false);
+          return;
         }
 
-        if (allNewItemsForSelectionState.length > 0) {
-          setSelectedItem(allNewItemsForSelectionState[0]);
-        } else {
-          setSelectedItem(null);
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = "";
+
+        while (!streamDone) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
+
+          let marker;
+          while ((marker = buffer.indexOf("\n\n")) >= 0) {
+            const block = buffer.slice(0, marker);
+            buffer = buffer.slice(marker + 2);
+
+            let eventType = "message";
+            let eventData = "";
+            for (const line of block.split("\n")) {
+              if (line.startsWith("event:")) {
+                eventType = line.substring("event:".length).trim();
+              } else if (line.startsWith("data:")) {
+                eventData += line.substring("data:".length);
+              }
+            }
+
+            if (eventType === "error") {
+              console.error("Streaming Error Event:", eventData);
+              streamDone = true;
+              break;
+            } else if (eventType === "done") {
+              streamDone = true;
+              break;
+            } else {
+              try {
+                const blueprint = JSON.parse(eventData) as Omit<DashboardItem, "id" | "zIndex" | "isSelected">;
+                const newId = Date.now() + Math.random();
+                const newItem = {
+                  ...blueprint,
+                  id: newId,
+                  zIndex: getNextZIndex(),
+                  isSelected: true,
+                } as DashboardItem;
+
+                if (newItem.type === "note") {
+                  setNotes((prev) => [...prev, newItem as StickyNoteData]);
+                } else if (newItem.type === "text") {
+                  setTexts((prev) => [...prev, newItem as TextNoteData]);
+                } else if (newItem.type === "line") {
+                  setLines((prev) => [...prev, newItem as DrawLineData]);
+                }
+
+                if (!firstItemSelectedInStream) {
+                  setSelectedItem(newItem);
+                  firstItemSelectedInStream = true;
+                }
+              } catch (e) {
+                console.error("Failed to parse item data from stream message:", eventData, e);
+              }
+            }
+          }
         }
+      } catch (error) {
+        console.error("Error with fetch stream setup or connection:", error);
+      } finally {
+        deselectAllItems();
+        setIsGenAiLoading(false);
       }
     },
     [getAllSelectedItems, getNextZIndex, deselectAllItems, setNotes, setTexts, setLines, setSelectedItem]
